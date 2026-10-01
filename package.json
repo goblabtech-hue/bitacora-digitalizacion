@@ -1,0 +1,13 @@
+{
+  "name": "cts-bitacora",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Bitácora de recepción y digitalización de documentos",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "prueba": "BITACORA_ACCESO_PRUEBA=1 node server.js"
+  }
+}
