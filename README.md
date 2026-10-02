@@ -1,4 +1,4 @@
-# PROYECTAI
+# Bitácora Digitalización
 
 Bitácora de digitalización de documentos. Registra la recepción y el
 seguimiento de los documentos que entran a digitalización: quién entrega, quién
@@ -14,7 +14,7 @@ y la interfaz es HTML, CSS y JS puros.
 
 ## Qué guarda y qué no
 
-PROYECTAI es **la bitácora, no el acervo**: registra quién entregó qué, en qué
+Este sistema es **la bitácora, no el acervo**: registra quién entregó qué, en qué
 estado, quién lo digitalizó y cómo se devolvió. **No almacena los documentos
 digitalizados** — no hay forma de subir un archivo al sistema, y las imágenes
 siguen viviendo donde ustedes decidan. Lo único binario que guarda son las
@@ -32,7 +32,7 @@ npm start
 Al iniciar, la consola imprime dos direcciones:
 
 ```
-PROYECTAI · Bitácora  ·  este equipo:  http://localhost:4321
+Bitácora Digitalización  ·  este equipo:  http://localhost:4321
                       ·  en la red:    http://192.168.68.124:4321
 ```
 
@@ -49,7 +49,7 @@ Para cambiar el puerto: `PORT=8080 npm start`.
 
 ## Acceso con Google
 
-PROYECTAI puede funcionar de dos maneras (más una entrada de prueba para
+El sistema puede funcionar de dos maneras (más una entrada de prueba para
 conocerlo, descrita enseguida):
 
 - **Modo local** (por omisión) — sin contraseñas. Cada equipo declara quién lo
@@ -94,7 +94,7 @@ de prueba se pueden quitar desde *Personas con acceso*.
 
 En <https://console.cloud.google.com>:
 
-1. Crea un proyecto (por ejemplo *PROYECTAI*).
+1. Crea un proyecto (por ejemplo *Bitácora*).
 2. **APIs y servicios → Pantalla de consentimiento de OAuth**. Si la empresa
    tiene Google Workspace, elige **Interno**: solo entrarán cuentas del
    dominio. Si usan cuentas de Gmail sueltas, elige **Externo** y agrega a cada
@@ -439,7 +439,7 @@ nueva; conviene definirlo antes de la primera recepción.
 
 ## Publicarlo en internet
 
-PROYECTAI puede vivir fuera de la oficina: se llega desde cualquier lado, tiene
+El sistema puede vivir fuera de la oficina: se llega desde cualquier lado, tiene
 HTTPS y el acceso con Google funciona sin las restricciones de la red local.
 
 **No hace falta comprar un dominio para empezar.** Los servicios de hospedaje

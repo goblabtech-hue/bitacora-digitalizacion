@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS config (
 );`);
 
 export const CONFIG_POR_DEFECTO = {
-  organizacion: 'PROYECTAI',
+  organizacion: 'Centro de Tecnologías del Sureste',
   folio_prefijo: 'CTS',
   leyenda_acuse: 'Recibí los documentos descritos en este acuse, en la cantidad y situación asentadas.'
 };

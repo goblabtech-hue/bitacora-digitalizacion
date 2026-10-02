@@ -225,7 +225,7 @@ function autorizar(correo, nombre, foto) {
   if (!persona) {
     const hayAlguien = db.prepare('SELECT COUNT(*) AS n FROM usuarios').get().n > 0;
     if (hayAlguien) {
-      throw new Error(`${correo} no está dado de alta en PROYECTAI. Pide a un supervisor que te agregue.`);
+      throw new Error(`${correo} no está dado de alta en Bitácora Digitalización. Pide a un supervisor que te agregue.`);
     }
     // primer acceso del sistema: quien entra queda como supervisor
     db.prepare('INSERT INTO usuarios (nombre, email, rol, creado_en) VALUES (?,?,?,?)')

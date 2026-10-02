@@ -1,9 +1,9 @@
 {
-  "name": "cts-bitacora",
+  "name": "bitacoradigitalizacion",
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Bitácora de recepción y digitalización de documentos",
+  "description": "Bitácora de recepción, digitalización y devolución de documentos",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

@@ -1029,7 +1029,7 @@ function direccionesDeRed() {
 // escucha en todas las interfaces para que otros equipos de la red puedan entrar
 servidor.listen(PORT, '0.0.0.0', () => {
   const esquema = TLS ? 'https' : 'http';
-  console.log(`\n  PROYECTAI · Bitácora  ·  este equipo:  ${esquema}://localhost:${PORT}`);
+  console.log(`\n  Bitácora Digitalización  ·  este equipo:  ${esquema}://localhost:${PORT}`);
   for (const ip of direccionesDeRed()) {
     console.log(`                        ·  en la red:    ${esquema}://${ip}:${PORT}`);
   }
