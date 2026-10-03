@@ -8,6 +8,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
+    "test": "node --test --import ./test/entorno.js \"test/**/*.test.js\"",
     "prueba": "BITACORA_ACCESO_PRUEBA=1 BITACORA_DB=data/prueba.db BITACORA_RESPALDOS=data/respaldos-prueba BITACORA_ARCHIVO=data/archivo-prueba node server.js"
   }
 }

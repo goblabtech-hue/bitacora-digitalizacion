@@ -53,6 +53,21 @@ dirección cambia con ella; conviene pedirle al router una IP fija.
 
 Para cambiar el puerto: `PORT=8080 npm start`.
 
+## Pruebas
+
+```bash
+npm test
+```
+
+Usa el ejecutor de pruebas que trae Node (`node:test` y `node:assert`), sin
+dependencias. Las pruebas van en `test/` con nombre `*.test.js`.
+`test/entorno.js` se carga antes que todas y apunta la base a memoria y los
+expedientes y respaldos a una carpeta temporal: **las pruebas nunca tocan
+`data/`**. `test/integracion.test.js` arranca además su propio servidor en un
+puerto libre y recorre el flujo completo (`test/flujo-completo.mjs`): mesas,
+traslados, solicitudes, devolución y permisos por rol. Para ver la cobertura:
+`node --test --experimental-test-coverage --import ./test/entorno.js "test/**/*.test.js"`.
+
 ## Acceso con Google
 
 Cada persona entra con su cuenta de Google y solo pueden entrar los correos
