@@ -1,6 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { etapaDe, prepararCarpeta, recoserCarpeta, registrarEscaneo, ErrorRegla } from '../custodia.js';
+import { db } from '../db.js';
+import { enviarAMesa, etapaDe, prepararCarpeta, recoserCarpeta, registrarEscaneo, ErrorRegla } from '../custodia.js';
 
 /** Un lote con una carpeta de 220 fojas, en la etapa indicada. */
 const lote = (etapa, extra = {}) => ({
@@ -13,6 +14,19 @@ const lote = (etapa, extra = {}) => ({
 
 /** Comprueba que se rechaza con una regla cuyo mensaje dice lo esperado. */
 const rechaza = (fn, mensaje) => assert.throws(fn, (e) => e instanceof ErrorRegla && mensaje.test(e.message));
+
+/* ── asignación a mesa: por caja completa ── */
+
+test('no se asigna a una mesa una caja incompleta', () => {
+  const { lastInsertRowid: mesa } = db.prepare(`INSERT INTO mesas (nombre, responsable, activa, creado_en, sede_id)
+    VALUES ('Mesa de prueba', 'Laura Hernández', 1, '2026-10-02T09:00:00Z', 1)`).run();
+  const carpeta = (id, caja) => ({ id, caja, nuc: `12-2026-0${id}`, etapa: 'Por asignar', sede_id: 1, sede: 'Sede principal' });
+  const r = { id: 1, folio: 'BIT-2026-0099', validada_en: '2026-10-02T09:30:00Z', asignaciones: [],
+              documentos: [carpeta(21, 1), carpeta(22, 1), carpeta(23, 2)] };
+
+  rechaza(() => enviarAMesa(r, [21, 23], mesa, 'Recepción'),
+    /La caja 1 de BIT-2026-0099 tiene 2 carpetas por asignar: se asigna la caja completa/);
+});
 
 /* ── descosido y revisión ── */
 

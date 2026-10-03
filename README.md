@@ -282,8 +282,9 @@ rol (Recepción, Operador o Supervisor), cargo, correo y teléfono, y se ve de u
 vistazo lo que ha hecho: **recepciones atendidas, carpetas escaneadas como
 responsable de mesa, imágenes generadas y su última actividad**.
 
-En la misma vista están las **mesas de digitalización**, cada una con su
-responsable. Solo un supervisor las da de alta o cambia su responsable; una
+En la misma vista están las **mesas de digitalización**. Cada mesa tiene **un
+escaneador** (su responsable) y **preparadores**: las personas con rol *Mesa*
+asignadas a ella. Solo un supervisor las da de alta o cambia su escaneador; una
 mesa con carpetas en proceso no se puede desactivar.
 
 El cargo importa porque es el que se imprime en los acuses junto a la firma.
@@ -367,10 +368,15 @@ trabajo de todas las mesas:
 - **Lotes sin validar**, con un enlace para validarlos: hasta entonces sus
   carpetas no pueden ir a una mesa.
 - **Por asignar a mesa**: las carpetas de los lotes validados, agrupadas por
-  lote. Se marcan (una por una, el lote completo o *Seleccionar todas*), se
-  elige la mesa y **Asignar a la mesa**.
-- **Una tarjeta por mesa**, con su responsable y sus carpetas, cada una con el
-  botón de su siguiente paso.
+  lote y por caja. **Una caja va entera a una sola mesa**: se marca la caja
+  (o el lote completo, o *Seleccionar todas las cajas*) y con ella van todas
+  sus carpetas pendientes; las carpetas no se marcan sueltas. Al marcar una
+  caja aparece arriba la barra para elegir la mesa y **Asignar a la mesa**. El
+  servidor rechaza una caja incompleta. Si una carpeta regresa por escaneo
+  incompleto, se reasigna marcando su caja.
+- **Una tarjeta por mesa**, con su escaneador, sus preparadores y sus carpetas.
+  Cada carpeta dice a quién le toca el siguiente paso; desde una cuenta de mesa
+  cada persona ve **solo el botón de su paso**.
 
 Cada carpeta avanza **en orden, sin saltarse pasos**, con persona, fecha y hora
 en cada uno:
@@ -382,15 +388,21 @@ en cada uno:
    si no coinciden con las asentadas, **la carpeta no avanza** y hay que
    reportar una incidencia. Aquí se registra cada **post-it o documento suelto**
    que se retira: qué es, **en qué hoja** estaba (su número de folio) y **de qué
-   lado**: al frente, al reverso o suelto entre esa hoja y la siguiente.
-3. **Registrar escaneo** (*Descosida*). Fojas escaneadas e imágenes generadas.
+   lado**: al frente, al reverso o suelto entre esa hoja y la siguiente. Lo hace
+   cualquier persona de la mesa y queda registrada como **quien la preparó**. Si
+   anota **hojas dañadas**, se abre sola una incidencia *Documento en mal estado*
+   para el supervisor; la carpeta sigue su proceso.
+3. **Registrar escaneo** (*Descosida*). Desde una mesa, **solo su escaneador**
+   escanea y sube el PDF. Fojas escaneadas e imágenes generadas.
    Si no coinciden con las fojas de la carpeta, hay que explicarlo y **la
    carpeta regresa a «Por asignar»** para escanearse de nuevo (no se vuelve a
    descoser).
 4. **Reintegrar y recoser** (*Escaneada*). Hay que confirmar, uno por uno, que
    **cada inserto volvió a su hoja y a su lado**, que la carpeta conserva todas sus
    fojas y que se volvió a coser. Si falta confirmar un solo post-it, no se
-   registra.
+   registra. Desde una mesa, **solo la recose quien la descosió**; si esa persona
+   falta, un supervisor usa **Reasignar recosido** para pasarla a otra persona de
+   la misma mesa, con su motivo registrado.
 
 Lo mismo se puede hacer desde la pestaña *Digitalización* de cada lote, donde
 el botón **Trazabilidad** de cada carpeta muestra toda su historia en orden.
@@ -661,7 +673,10 @@ secciones queda en el historial.
 
 | Acción | Mesa | Recepción | Operador | Supervisor |
 |---|:---:|:---:|:---:|:---:|
-| Descoser, escanear y recoser (solo su mesa) | ✔ | ✔ | ✔ | ✔ |
+| Descoser y preparar (solo su mesa) | ✔ | ✔ | ✔ | ✔ |
+| Escanear y subir PDF (en la mesa, solo su escaneador) | ✔ | ✔ | ✔ | ✔ |
+| Recoser (en la mesa, solo quien la descosió) | ✔ | ✔ | ✔ | ✔ |
+| Reasignar el recosido | | | | ✔ |
 | Reportar incidencias | ✔ | ✔ | ✔ | ✔ |
 | Recibir, validar, asignar a mesa, devolver (su sede) | | ✔ | ✔ | ✔ |
 | Enviar y recibir traslados (su sede) | | ✔ | ✔ | ✔ |
@@ -860,7 +875,8 @@ guárdala antes en un lugar seguro.
 | GET · POST | `/api/usuarios` | Personas del equipo |
 | PUT · DELETE | `/api/usuarios/:id` | Cambiar rol, sede, mesa y secciones, o dar de baja (no se borra) |
 | GET · POST | `/api/mesas` | Mesas de digitalización |
-| PUT | `/api/mesas/:id` | Cambiar nombre, responsable o desactivar |
+| PUT | `/api/mesas/:id` | Cambiar nombre, escaneador o desactivar |
+| POST | `/api/remisiones/:id/carpetas/:doc/reasignacion` | Reasignar el recosido a otra persona de la mesa (supervisor) |
 | POST | `/api/remisiones/:id/carpetas/:carpeta/preparacion` | Descosido, revisión e insertos |
 | POST | `/api/remisiones/:id/mesa` | Enviar carpetas preparadas a una mesa |
 | POST | `/api/remisiones/:id/carpetas/:carpeta/escaneo` | Fojas escaneadas e imágenes |

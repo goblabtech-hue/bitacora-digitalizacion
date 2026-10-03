@@ -165,20 +165,47 @@ export function prepararCarpeta(r, documentoId, datos, usuario) {
     exigir(i.foja !== null, `Indica en qué hoja estaba el inserto ${n + 1}, para volver a ponerlo ahí.`);
     exigir(i.lado, `Indica si el inserto ${n + 1} estaba al frente, al reverso o entre dos hojas.`);
   });
+  const danos = texto(datos.hojas_danadas, 500);
 
   enTransaccion(() => {
     const t = ahora();
-    db.prepare('UPDATE documentos SET prep_por = ?, prep_en = ?, prep_notas = ? WHERE id = ?')
-      .run(usuario, t, texto(datos.notas, 1000), d.id);
+    db.prepare('UPDATE documentos SET prep_por = ?, prep_en = ?, prep_notas = ?, prep_danos = ? WHERE id = ?')
+      .run(usuario, t, texto(datos.notas, 1000), danos, d.id);
     const alta = db.prepare(`INSERT INTO insertos
       (documento_id, remision_id, tipo, descripcion, foja, lado, retirado_por, retirado_en) VALUES (?,?,?,?,?,?,?,?)`);
     for (const i of insertos) alta.run(d.id, r.id, i.tipo, i.descripcion, i.foja, i.lado, usuario, t);
+    // las hojas dañadas no detienen la carpeta, pero el supervisor tiene que verlas
+    if (danos) {
+      db.prepare(`INSERT INTO incidencias (remision_id, tipo, gravedad, descripcion, reportada_por, reportada_en)
+                  VALUES (?, 'Documento en mal estado', 'Media', ?, ?, ?)`)
+        .run(r.id, `${nombreCarpeta(d)} · hojas dañadas: ${danos}`, usuario, t);
+    }
     registrarEvento(r.id, 'Descosido',
       `${nombreCarpeta(d)} · descosida y revisada, ${contadas} fojas` +
-      (insertos.length ? ` · ${insertos.length} inserto${insertos.length === 1 ? '' : 's'} retirado${insertos.length === 1 ? '' : 's'}` : ' · sin insertos'),
+      (insertos.length ? ` · ${insertos.length} inserto${insertos.length === 1 ? '' : 's'} retirado${insertos.length === 1 ? '' : 's'}` : ' · sin insertos') +
+      (danos ? ` · hojas dañadas: ${danos}` : ''),
       usuario);
   });
 }
+
+/* ───────────── quién hace cada paso dentro de la mesa ───────────── */
+
+/** Mesa en la que está ahora la carpeta (la de su última asignación). */
+const mesaDeCarpeta = (r, d) => {
+  const ultima = r.asignaciones.filter((a) => a.documento_id === d.id).at(-1);
+  return ultima && db.prepare('SELECT * FROM mesas WHERE id = ?').get(ultima.mesa_id);
+};
+
+/** Desde una mesa, solo su escaneador (el responsable) escanea y sube el PDF. */
+export function exigirEscaneador(r, d, usuario, rol) {
+  if (rol !== 'Mesa') return;
+  const mesa = mesaDeCarpeta(r, d);
+  exigir(mesa && mesa.responsable === usuario,
+    `Solo el escaneador de la ${mesa?.nombre || 'mesa'} (${mesa?.responsable || 'sin asignar'}) escanea y sube el PDF.`);
+}
+
+/** Quién debe recoser: quien la descosió, salvo que un supervisor la haya reasignado. */
+const quienRecose = (d) => d.recoser_asignado || d.prep_por;
 
 /* ──────────────────────── 1. asignación a una mesa ──────────────────── */
 
@@ -198,6 +225,12 @@ export function enviarAMesa(r, documentoIds, mesaId, usuario) {
     exigir(d.sede_id === mesa.sede_id,
       `La ${nombreCarpeta(d)} está en ${d.sede}; la ${mesa.nombre} es de otra sede. Hay que trasladar su caja primero.`);
   }
+  // una caja va entera a una sola mesa: con ella, todas sus carpetas que esperan mesa
+  for (const caja of new Set(carpetas.map((d) => d.caja))) {
+    const pendientes = r.documentos.filter((d) => d.caja === caja && d.etapa === 'Por asignar');
+    exigir(pendientes.every((d) => ids.includes(d.id)),
+      `La caja ${caja} de ${r.folio} tiene ${pendientes.length} carpetas por asignar: se asigna la caja completa.`);
+  }
 
   enTransaccion(() => {
     const t = ahora();
@@ -214,12 +247,13 @@ export function enviarAMesa(r, documentoIds, mesaId, usuario) {
 
 /* ──────────────────────────── 3. escaneo ────────────────────────────── */
 
-export function registrarEscaneo(r, documentoId, datos, usuario) {
+export function registrarEscaneo(r, documentoId, datos, usuario, rol) {
   exigirAbierta(r);
   const d = carpetaDe(r, documentoId);
   exigir(d.etapa === 'Descosida', d.etapa === 'En mesa'
     ? `La ${nombreCarpeta(d)} primero tiene que descoserse y revisarse.`
     : `La ${nombreCarpeta(d)} no está lista para escanear.`);
+  exigirEscaneador(r, d, usuario, rol);
   const asignacion = r.asignaciones.filter((a) => a.documento_id === d.id).at(-1);
 
   const fojas = entero(datos.fojas_escaneadas);
@@ -243,10 +277,15 @@ export function registrarEscaneo(r, documentoId, datos, usuario) {
 
 /* ──────────────────── 4. reintegración y recosido ───────────────────── */
 
-export function recoserCarpeta(r, documentoId, datos, usuario) {
+export function recoserCarpeta(r, documentoId, datos, usuario, rol) {
   exigirAbierta(r);
   const d = carpetaDe(r, documentoId);
   exigir(d.etapa === 'Escaneada', `La ${nombreCarpeta(d)} todavía no tiene un escaneo completo.`);
+  if (rol === 'Mesa') {
+    exigir(usuario === quienRecose(d), d.recoser_asignado
+      ? `Esta carpeta la recose ${d.recoser_asignado}, a quien un supervisor se la reasignó.`
+      : `Esta carpeta la recose quien la descosió: ${d.prep_por}. Si no está, un supervisor puede reasignarla.`);
+  }
 
   exigir(d.archivo, `Primero sube el PDF de la ${nombreCarpeta(d)}: sin su expediente digital no se recose.`);
   const pendientes = r.insertos.filter((i) => i.documento_id === d.id && !i.reintegrado_en);
@@ -275,13 +314,38 @@ export function recoserCarpeta(r, documentoId, datos, usuario) {
   });
 }
 
+/** Un supervisor pasa el recosido a otra persona de la misma mesa (si quien la descosió falta). */
+export function reasignarRecosido(r, documentoId, datos, usuario) {
+  exigirAbierta(r);
+  const d = carpetaDe(r, documentoId);
+  exigir(d.prep_en && !d.recosido_en, `La ${nombreCarpeta(d)} no está esperando recosido: no hay nada que reasignar.`);
+  const motivo = texto(datos.motivo, 500);
+  exigir(motivo.length >= 10, 'Explica el motivo de la reasignación (al menos 10 caracteres).');
+  const mesa = mesaDeCarpeta(r, d);
+  const a = texto(datos.a, 120);
+  const deLaMesa = mesa && db.prepare("SELECT 1 FROM usuarios WHERE nombre = ? AND rol = 'Mesa' AND activo = 1 AND mesa_id = ?")
+    .get(a, mesa.id);
+  exigir(deLaMesa, `${a || 'Esa persona'} no es de la ${mesa?.nombre || 'mesa'}: el recosido se reasigna a alguien de la misma mesa.`);
+  exigir(a !== quienRecose(d), `${a} ya es quien debe recoserla.`);
+
+  enTransaccion(() => {
+    db.prepare('UPDATE documentos SET recoser_asignado = ? WHERE id = ?').run(a, d.id);
+    registrarEvento(r.id, 'Recosido',
+      `${nombreCarpeta(d)} · el recosido pasa de ${quienRecose(d)} a ${a} · motivo: ${motivo}`, usuario);
+  });
+}
+
 /* ─────────────────────────────── mesas ──────────────────────────────── */
 
+/** El responsable de la mesa es su escaneador; las demás personas de la mesa la apoyan preparando. */
 export const listarMesas = () => db.prepare(`
   SELECT m.*, (SELECT nombre FROM sedes s WHERE s.id = m.sede_id) AS sede,
     (SELECT COUNT(*) FROM asignaciones a WHERE a.mesa_id = m.id AND a.salida_en = '') AS en_mesa,
-    (SELECT COUNT(*) FROM asignaciones a WHERE a.mesa_id = m.id AND a.cuadra = 1)     AS escaneadas
-    FROM mesas m ORDER BY m.activa DESC, m.nombre`).all();
+    (SELECT COUNT(*) FROM asignaciones a WHERE a.mesa_id = m.id AND a.cuadra = 1)     AS escaneadas,
+    (SELECT json_group_array(u.nombre) FROM usuarios u
+      WHERE u.mesa_id = m.id AND u.rol = 'Mesa' AND u.activo = 1 AND u.nombre <> m.responsable) AS preparadores
+    FROM mesas m ORDER BY m.activa DESC, m.nombre`).all()
+  .map((m) => ({ ...m, preparadores: JSON.parse(m.preparadores) }));
 
 export function guardarMesa(id, datos, usuario) {
   const nombre = texto(datos.nombre, 60);
@@ -578,7 +642,8 @@ export function trabajoDigitalizacion({ sedeId = null, mesaId = null } = {}) {
         id: d.id, remision_id: lote.id, folio: lote.folio, dependencia: lote.dependencia,
         caja: d.caja, nuc: d.nuc, descripcion: d.descripcion, fojas: d.fojas,
         folio_inicial: d.folio_inicial, folio_final: d.folio_final, situacion: d.situacion,
-        prep_en: d.prep_en, etapa: d.etapa, sede: d.sede, sede_id: d.sede_id
+        prep_en: d.prep_en, prep_por: d.prep_por, recoser_asignado: d.recoser_asignado,
+        etapa: d.etapa, sede: d.sede, sede_id: d.sede_id
       };
       const ultima = lote.asignaciones.filter((a) => a.documento_id === d.id).at(-1);
       if (d.etapa === 'Por asignar') {

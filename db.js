@@ -236,6 +236,9 @@ for (const [columna, definicion] of [
   ['prep_por',       "TEXT NOT NULL DEFAULT ''"],
   ['prep_en',        "TEXT NOT NULL DEFAULT ''"],
   ['prep_notas',     "TEXT NOT NULL DEFAULT ''"],
+  ['prep_danos',     "TEXT NOT NULL DEFAULT ''"],   // hojas dañadas que vio el preparador
+  // la recose quien la descosió; si falta, un supervisor la pasa a otra persona de la mesa
+  ['recoser_asignado', "TEXT NOT NULL DEFAULT ''"],
   ['recosido_por',   "TEXT NOT NULL DEFAULT ''"],
   ['recosido_en',    "TEXT NOT NULL DEFAULT ''"],
   ['recosido_notas', "TEXT NOT NULL DEFAULT ''"]

@@ -38,7 +38,7 @@ test('flujo completo contra el servidor', async (t) => {
   t.after(() => servidor.kill());
   await esperarServidor(`http://localhost:${puerto}`);
 
-  const { stdout } = await promisify(execFile)(process.execPath, ['test/flujo-completo.mjs', base], {
+  const { stdout, stderr } = await promisify(execFile)(process.execPath, ['test/flujo-completo.mjs', base], {
     cwd: RAIZ, env: { ...entorno, BASE_PRUEBAS: `http://localhost:${puerto}` }
   }).catch((e) => e);   // con fallas sale con código 1, pero su salida dice cuáles
 
@@ -48,4 +48,7 @@ test('flujo completo contra el servidor', async (t) => {
   for (const [, marca, nombre, detalle] of comprobaciones) {
     await t.test(nombre, () => assert.equal(marca, '✔', detalle || 'la regla no se cumplió'));
   }
+  // si la batería truena a la mitad, las comprobaciones que faltaban no se ven: hay que exigir que termine
+  await t.test('la batería llega hasta el final', () =>
+    assert.match(stdout, /^(✔ todo en orden|✘ \d+ fallas)$/m, `Se detuvo antes de terminar:\n${stderr}`));
 });

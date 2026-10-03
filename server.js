@@ -15,7 +15,7 @@ import {
   ErrorRegla, ETAPAS, completarCustodia, bloqueada, prepararCarpeta, enviarAMesa, registrarEscaneo,
   recoserCarpeta, listarMesas, guardarMesa, cancelarRemision, crearSolicitud, resolverSolicitud,
   consumirCorreccion, solicitudesPendientes, nombreCarpeta, iniciada, trabajoDigitalizacion,
-  crearTraslado, recibirTraslado, listarTraslados, listarCarpetas
+  crearTraslado, recibirTraslado, listarTraslados, listarCarpetas, exigirEscaneador, reasignarRecosido
 } from './custodia.js';
 import { reportePeriodo, rango } from './reporte.js';
 import {
@@ -1139,6 +1139,7 @@ const atender = async (req, res) => {
         req.resume();
         return json(res, 403, { errores: [`Esa carpeta está en ${d.sede}: su PDF lo sube esa sede.`] });
       }
+      try { exigirEscaneador(r, d, usuarioDe(req), rolDe(req)); } catch (e) { req.resume(); throw e; }
       await guardarArchivo(req, r, d, { usuario: usuarioDe(req), nombre: texto(p.nombre, 200), motivo: texto(p.motivo, 500) });
       return json(res, 201, obtenerRemision(r.id));
     }
@@ -1183,7 +1184,15 @@ const atender = async (req, res) => {
       if (sedeDe(req) !== null && carpeta && carpeta.sede_id !== sedeDe(req)) {
         return json(res, 403, { errores: [`Esa carpeta está en ${carpeta.sede}: la trabaja esa sede.`] });
       }
-      accion(r, Number(paso[2]), await leerCuerpo(req), usuarioDe(req));
+      accion(r, Number(paso[2]), await leerCuerpo(req), usuarioDe(req), rolDe(req));
+      return json(res, 200, obtenerRemision(r.id));
+    }
+    const reasignacion = ruta.match(/^\/api\/remisiones\/(\d+)\/carpetas\/(\d+)\/reasignacion$/);
+    if (reasignacion && req.method === 'POST') {
+      if (!esSupervisor(req)) return json(res, 403, { errores: ['Solo un supervisor reasigna el recosido.'] });
+      const r = obtenerRemision(Number(reasignacion[1]));
+      if (!r) return json(res, 404, { error: 'Remisión no encontrada' });
+      reasignarRecosido(r, Number(reasignacion[2]), await leerCuerpo(req), usuarioDe(req));
       return json(res, 200, obtenerRemision(r.id));
     }
     const aMesa = ruta.match(/^\/api\/remisiones\/(\d+)\/mesa$/);

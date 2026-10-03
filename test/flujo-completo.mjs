@@ -32,7 +32,8 @@ const sup = await entrar('supervisora@prueba.local');
 const ope = await entrar('operador@prueba.local');
 const rec = await entrar('recepcion@prueba.local');
 const sup2 = await entrar('supervisor2@prueba.local');
-const mesa1 = await entrar('mesa1@prueba.local');
+const mesa1 = await entrar('mesa1@prueba.local');          // escaneador de la Mesa 1
+const prep1 = await entrar('preparador1@prueba.local');    // preparador de la Mesa 1
 const norte = await entrar('norte@prueba.local');
 
 // sin sesión no hay API
@@ -412,6 +413,53 @@ x = await sup(`/api/usuarios/${operador.id}`, 'PUT', { ...operador, rol: 'Superv
 x = await sup('/api/usuarios');
 ok(x.datos.find((u) => u.id === operador.id).secciones.length === 8, 'Un supervisor siempre ve todo');
 await sup(`/api/usuarios/${operador.id}`, 'PUT', { ...operador, rol: 'Operador', permisos: ['panel', 'digitalizacion', 'devueltas', 'bitacora', 'reporte'] });
+
+// ── en la mesa: el preparador descose y recose, el escaneador escanea ──
+x = await rec('/api/remisiones', 'POST', { ...base, documentos: [
+  { caja: 1, nuc: 'NUC-SEP-1', folio_inicial: 1, folio_final: 4, fojas: 4 },
+  { caja: 1, nuc: 'NUC-SEP-2', folio_inicial: 1, folio_final: 6, fojas: 6 }] });
+const idSep = x.datos.id;
+const [s1, s2] = x.datos.documentos;
+await rec(`/api/remisiones/${idSep}/validacion`, 'PUT', { documentos: x.datos.documentos.map((d) => ({ id: d.id, cantidad: 1, fojas: d.fojas })) });
+x = await sup(`/api/remisiones/${idSep}/mesa`, 'POST', { documentos: [s1.id, s2.id], mesa: mesaId });
+ok(x.status === 200, 'La caja completa va a la Mesa 1', x.error);
+x = await sup('/api/mesas');
+ok(x.datos.find((m) => m.id === mesaId).preparadores.includes('Preparador de Mesa 1 de prueba'), 'La mesa muestra a sus preparadores');
+const pasoSep = (quien, carpeta, accion, cuerpo) => quien(`/api/remisiones/${idSep}/carpetas/${carpeta.id}/${accion}`, 'POST', cuerpo);
+x = await pasoSep(prep1, s1, 'preparacion', { descosida: true, fojas_contadas: 4, folios_completos: true,
+  hojas_danadas: 'Folios 2 y 3 rotos en la esquina' });
+ok(x.status === 200 && x.datos.documentos[0].prep_por === 'Preparador de Mesa 1 de prueba', 'Un preparador descose y queda registrado', x.error);
+ok(x.datos.incidencias?.some((i) => i.estado === 'Abierta' && i.tipo === 'Documento en mal estado' && /Folios 2 y 3/.test(i.descripcion)),
+  'Las hojas dañadas abren una incidencia');
+x = await pasoSep(prep1, s1, 'escaneo', { fojas_escaneadas: 4, imagenes: 8 });
+ok(x.status === 400 && /Solo el escaneador/.test(x.error), 'Un preparador no escanea', x.error);
+x = await pasoSep(mesa1, s1, 'escaneo', { fojas_escaneadas: 4, imagenes: 8 });
+ok(x.status === 200 && x.datos.documentos[0].etapa === 'Escaneada', 'El escaneador de la mesa escanea', x.error);
+x = await subir(prep1, idSep, s1.id, pdf(8));
+ok(x.status === 400 && /Solo el escaneador/.test(x.error), 'Un preparador no sube el PDF', x.error);
+x = await subir(mesa1, idSep, s1.id, pdf(8));
+ok(x.status === 201, 'El escaneador sube el PDF', x.error);
+x = await pasoSep(mesa1, s1, 'recosido', { cosida: true, fojas_completas: true });
+ok(x.status === 400 && /la recose quien la descosió/.test(x.error), 'Solo recose quien la descosió', x.error);
+const reasignar = (quien, cuerpo) => quien(`/api/remisiones/${idSep}/carpetas/${s1.id}/reasignacion`, 'POST', cuerpo);
+x = await reasignar(ope, { a: 'Mesa 1 de prueba', motivo: 'La preparadora salió de incapacidad' });
+ok(x.status === 403, 'Solo un supervisor reasigna el recosido', String(x.status));
+x = await reasignar(sup, { a: 'Mesa 1 de prueba', motivo: 'corto' });
+ok(x.status === 400 && /motivo/.test(x.error), 'Reasignar el recosido exige motivo', x.error);
+x = await reasignar(sup, { a: 'Recepción de prueba', motivo: 'La preparadora salió de incapacidad' });
+ok(x.status === 400 && /de la Mesa 1/.test(x.error), 'Solo se reasigna a alguien de la misma mesa', x.error);
+x = await reasignar(sup, { a: 'Mesa 1 de prueba', motivo: 'La preparadora salió de incapacidad' });
+ok(x.status === 200 && x.datos.documentos[0].recoser_asignado === 'Mesa 1 de prueba', 'Un supervisor reasigna el recosido', x.error);
+x = await pasoSep(prep1, s1, 'recosido', { cosida: true, fojas_completas: true });
+ok(x.status === 400, 'Tras reasignar, quien lo descosió ya no lo recose', x.error);
+x = await pasoSep(mesa1, s1, 'recosido', { cosida: true, fojas_completas: true });
+ok(x.status === 200 && x.datos.documentos[0].etapa === 'Recosida', 'Recose la persona a quien se reasignó', x.error);
+x = await pasoSep(mesa1, s2, 'preparacion', { descosida: true, fojas_contadas: 6, folios_completos: true });
+ok(x.status === 200, 'El escaneador también puede preparar si hace falta', x.error);
+x = await sup('/api/reporte?desde=2026-01-01&hasta=2099-12-31&desfase=360');
+ok(x.datos.escaneo.por_persona?.some((p) => p.nombre === 'Mesa 1 de prueba'), 'El reporte separa la producción por escaneador',
+  JSON.stringify(x.datos.escaneo.por_persona));
+ok(x.datos.descosido.por_persona.some((p) => p.nombre === 'Preparador de Mesa 1 de prueba'), 'El reporte separa la producción por preparador');
 
 // ── confidencialidad ──
 x = await ope('/api/exportar.csv');

@@ -59,6 +59,7 @@ export function sembrarPrueba() {
     ['Operador de prueba',        `operador@${DOMINIO_PRUEBA}`,    'Operador',   principal, null],
     ['Recepción de prueba',       `recepcion@${DOMINIO_PRUEBA}`,   'Recepción',  principal, null],
     ['Mesa 1 de prueba',          `mesa1@${DOMINIO_PRUEBA}`,       'Mesa',       principal, mesa1],
+    ['Preparador de Mesa 1 de prueba', `preparador1@${DOMINIO_PRUEBA}`, 'Mesa',  principal, mesa1],
     ['Recepción Norte de prueba', `norte@${DOMINIO_PRUEBA}`,       'Recepción',  norte,     null]
   ]) {
     if (!db.prepare('SELECT 1 FROM usuarios WHERE lower(email) = ?').get(correo)) alta.run(nombre, correo, rol, t, sede, mesa);

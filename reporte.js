@@ -123,6 +123,12 @@ export function reportePeriodo(desde, hasta, desfaseMin = 0, sedeId = null) {
       sumarA(g, 'incompletos', e.cuadra ? 0 : 1);
       sumarA(g, 'fojas', e.cuadra ? e.fojas_escaneadas : 0);
       sumarA(g, 'imagenes', e.cuadra ? e.imagenes : 0);
+    }),
+    // quien registró cada escaneo: la producción de cada escaneador
+    por_persona: porClave(escaneos, 'salida_por', (g, e) => {
+      sumarA(g, 'incompletos', e.cuadra ? 0 : 1);
+      sumarA(g, 'fojas', e.cuadra ? e.fojas_escaneadas : 0);
+      sumarA(g, 'imagenes', e.cuadra ? e.imagenes : 0);
     })
   };
 

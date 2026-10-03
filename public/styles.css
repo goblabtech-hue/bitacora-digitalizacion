@@ -304,9 +304,17 @@ body.modo-mesa #digi-traslados-card { display: none !important; }
 /* vista de Digitalización: barra para asignar lo seleccionado y las mesas */
 .asignar-barra {
   display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  padding: 12px 20px; border-top: 1px solid var(--separator); background: var(--surface-2);
-  position: sticky; bottom: 0;
+  padding: 12px 20px; border-bottom: 1px solid var(--separator); background: var(--surface-2);
+  position: sticky; top: 0; z-index: 2;
 }
+/* equipo de cada mesa: quién escanea y quién prepara */
+.mesa-equipo { display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 0 20px 12px; font-size: 13px; color: var(--text-2); }
+.mesa-equipo b { color: var(--text); font-weight: 600; }
+
+/* por asignar: se marca la caja; sus carpetas se listan debajo, sin casilla */
+.tabla tr.fila-sel-caja td { background: var(--surface); font-weight: 600; }
+.tabla tr.fila-sel-caja .celda-sec { font-weight: 400; }
+.tabla tr.fila-carpeta td:nth-child(2) { padding-left: 34px; }
 .asignar-barra span { font-size: 13.5px; font-weight: 500; margin-right: auto; }
 .asignar-barra select { width: auto; max-width: 100%; }
 #digi-stats { grid-template-columns: repeat(4, 1fr); }

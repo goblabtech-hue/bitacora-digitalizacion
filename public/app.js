@@ -936,12 +936,12 @@ function etapasDelReporte(x) {
         ['Carpetas asignadas', num(x.asignacion.carpetas)],
         ['Reasignadas (volvieron a mesa)', num(x.asignacion.reasignadas), x.asignacion.reasignadas > 0]],
       tablas: [{ titulo: 'Por mesa', filas: x.asignacion.por_mesa,
-        columnas: [['nombre', 'Mesa'], ['responsable', 'Responsable'], ['total', 'Carpetas', 1]] }] },
+        columnas: [['nombre', 'Mesa'], ['responsable', 'Escaneador'], ['total', 'Carpetas', 1]] }] },
     { titulo: '4. Descosido y revisión', cifras: [
         ['Carpetas descosidas', num(x.descosido.carpetas)], ['Fojas revisadas', num(x.descosido.fojas)],
         ['Insertos retirados', num(x.descosido.insertos)]],
       tablas: [
-        { titulo: 'Por persona', filas: x.descosido.por_persona,
+        { titulo: 'Por preparador', filas: x.descosido.por_persona,
           columnas: [['nombre', 'Persona'], ['total', 'Carpetas', 1], ['fojas', 'Fojas', 1]] },
         { titulo: 'Insertos por tipo', filas: x.descosido.insertos_por_tipo, columnas: [['nombre', 'Tipo'], ['total', 'Retirados', 1]] }] },
     { titulo: '5. Escaneo', cifras: [
@@ -950,12 +950,14 @@ function etapasDelReporte(x) {
         ['Escaneos incompletos', num(x.escaneo.incompletos), x.escaneo.incompletos > 0],
         ['Reproceso', formato.pct(x.escaneo.reproceso), x.escaneo.reproceso > 0],
         ['Tiempo promedio en mesa', formato.min(x.escaneo.minutos_en_mesa)]],
-      tablas: [{ titulo: 'Por mesa', filas: x.escaneo.por_mesa, columnas: [['nombre', 'Mesa'], ['responsable', 'Responsable'],
+      tablas: [{ titulo: 'Por escaneador', filas: x.escaneo.por_persona, columnas: [['nombre', 'Escaneador'],
+        ['total', 'Escaneos', 1], ['incompletos', 'Incompletos', 1], ['fojas', 'Fojas', 1], ['imagenes', 'Imágenes', 1]] },
+        { titulo: 'Por mesa', filas: x.escaneo.por_mesa, columnas: [['nombre', 'Mesa'],
         ['total', 'Escaneos', 1], ['incompletos', 'Incompletos', 1], ['fojas', 'Fojas', 1], ['imagenes', 'Imágenes', 1]] }] },
     { titulo: '6. Reintegración y recosido', cifras: [
         ['Carpetas terminadas', num(x.recosido.carpetas)], ['Insertos reintegrados', num(x.recosido.insertos_reintegrados)],
         ['Ciclo promedio en mesa', formato.horas(x.recosido.horas_de_ciclo)]],
-      tablas: [{ titulo: 'Por persona', filas: x.recosido.por_persona, columnas: [['nombre', 'Persona'], ['total', 'Carpetas', 1]] }] },
+      tablas: [{ titulo: 'Por quien recosió', filas: x.recosido.por_persona, columnas: [['nombre', 'Preparador'], ['total', 'Carpetas', 1]] }] },
     { titulo: '7. Devolución', cifras: [
         ['Lotes devueltos', num(x.devolucion.lotes)], ['Carpetas', num(x.devolucion.carpetas)],
         ['Imágenes entregadas', num(x.devolucion.imagenes_entregadas)], ['Aceptadas', num(x.devolucion.aceptadas)],
@@ -1083,43 +1085,64 @@ function pintarPorAsignar(carpetas) {
     return;
   }
   $('#digi-todas').hidden = false;
+  const plural = (n, palabra) => `${num(n)} ${palabra}${n === 1 ? '' : 's'}`;
   const lotes = [...new Set(carpetas.map((c) => c.remision_id))];
+  // una caja va entera a una mesa: se marca la caja y sus carpetas solo se muestran
   $('#digi-por-asignar').innerHTML = `
     <table class="tabla">
-      <thead><tr><th style="width:36px"></th><th>Carpeta (NUC)</th><th>Caja</th><th>Folios</th><th class="num">Fojas</th></tr></thead>
+      <thead><tr><th style="width:36px"></th><th>Caja · carpeta (NUC)</th><th>Folios</th><th class="num">Fojas</th></tr></thead>
       <tbody>${lotes.map((id) => {
         const propias = carpetas.filter((c) => c.remision_id === id);
+        const cajas = [...new Set(propias.map((c) => c.caja))].sort((a, b) => a - b);
         return `
-        <tr class="fila-caja"><td><input type="checkbox" class="sel-lote" data-lote="${id}" aria-label="Seleccionar el lote"></td>
-          <td colspan="4"><b>${esc(propias[0].folio)}</b> · ${esc(propias[0].dependencia)} ·
-            ${num(propias.length)} carpeta${propias.length === 1 ? '' : 's'}
+        <tr class="fila-caja"><td><input type="checkbox" class="sel-lote" data-lote="${id}" aria-label="Seleccionar todas las cajas del lote"></td>
+          <td colspan="3"><b>${esc(propias[0].folio)}</b> · ${esc(propias[0].dependencia)} ·
+            ${plural(cajas.length, 'caja')} · ${plural(propias.length, 'carpeta')}
             ${esSupervisor() ? `· <span class="pill">${esc(propias[0].sede)}</span>` : ''}</td></tr>
-        ${propias.map((c) => `
-          <tr style="cursor:default">
-            <td><input type="checkbox" class="sel-carpeta" data-id="${c.id}" data-lote="${id}" aria-label="Seleccionar"></td>
+        ${cajas.map((caja) => {
+          const enCaja = propias.filter((c) => c.caja === caja);
+          const fojas = enCaja.reduce((s, c) => s + (c.fojas || 0), 0);
+          return `
+          <tr class="fila-sel-caja">
+            <td><input type="checkbox" class="sel-caja" data-lote="${id}" data-ids="${enCaja.map((c) => c.id).join(',')}"
+              data-fojas="${fojas}" aria-label="Seleccionar la caja ${num(caja)}"></td>
+            <td>Caja ${num(caja)} <span class="celda-sec">· ${plural(enCaja.length, 'carpeta')} por asignar</span></td>
+            <td></td>
+            <td class="num">${num(fojas)}</td>
+          </tr>
+          ${enCaja.map((c) => `
+          <tr class="fila-carpeta" style="cursor:default">
+            <td></td>
             <td>${nombreCarpeta(c)}${c.reintento
               ? '<div class="celda-sec" style="color:var(--red)">escaneo incompleto: va de nuevo a mesa</div>' : ''}</td>
-            <td class="celda-sec">${num(c.caja)}</td>
             <td class="celda-sec">${foliosDe(c)}</td>
             <td class="num">${num(c.fojas)}</td>
           </tr>`).join('')}`;
+        }).join('')}`;
       }).join('')}
       </tbody>
     </table>`;
 
   $$('#digi-por-asignar .sel-lote').forEach((c) => c.addEventListener('change', () => {
-    $$(`#digi-por-asignar .sel-carpeta[data-lote="${c.dataset.lote}"]`).forEach((x) => { x.checked = c.checked; });
+    $$(`#digi-por-asignar .sel-caja[data-lote="${c.dataset.lote}"]`).forEach((x) => { x.checked = c.checked; });
     actualizarSeleccion();
   }));
-  $$('#digi-por-asignar .sel-carpeta').forEach((c) => c.addEventListener('change', actualizarSeleccion));
+  $$('#digi-por-asignar .sel-caja').forEach((c) => c.addEventListener('change', () => {
+    const delLote = $$(`#digi-por-asignar .sel-caja[data-lote="${c.dataset.lote}"]`);
+    $(`#digi-por-asignar .sel-lote[data-lote="${c.dataset.lote}"]`).checked = delLote.every((x) => x.checked);
+    actualizarSeleccion();
+  }));
   actualizarSeleccion();
 }
 
 function actualizarSeleccion() {
-  const marcadas = $$('#digi-por-asignar .sel-carpeta:checked');
+  const cajas = $$('#digi-por-asignar .sel-caja:checked');
+  const carpetas = cajas.reduce((s, c) => s + c.dataset.ids.split(',').length, 0);
+  const fojas = cajas.reduce((s, c) => s + Number(c.dataset.fojas), 0);
   const mesas = (estado.catalogos.mesas || []).filter((m) => m.activa && m.responsable);
-  $('#digi-barra').hidden = !marcadas.length;
-  $('#digi-seleccion').textContent = `${num(marcadas.length)} carpeta${marcadas.length === 1 ? '' : 's'} seleccionada${marcadas.length === 1 ? '' : 's'}`;
+  $('#digi-barra').hidden = !cajas.length;
+  $('#digi-seleccion').textContent = `${num(cajas.length)} caja${cajas.length === 1 ? '' : 's'} · ` +
+    `${num(carpetas)} carpeta${carpetas === 1 ? '' : 's'} · ${num(fojas)} fojas`;
   const previa = $('#digi-mesa').value;
   $('#digi-mesa').innerHTML = mesas.length
     ? mesas.map((m) => `<option value="${m.id}">${esSupervisor() ? `${esc(m.sede)} · ` : ''}${esc(m.nombre)} · ${esc(m.responsable)}</option>`).join('')
@@ -1129,7 +1152,7 @@ function actualizarSeleccion() {
 }
 
 $('#digi-todas').addEventListener('click', () => {
-  const todas = $$('#digi-por-asignar .sel-carpeta, #digi-por-asignar .sel-lote');
+  const todas = $$('#digi-por-asignar .sel-caja, #digi-por-asignar .sel-lote');
   const marcar = todas.some((c) => !c.checked);
   todas.forEach((c) => { c.checked = marcar; });
   actualizarSeleccion();
@@ -1138,8 +1161,8 @@ $('#digi-todas').addEventListener('click', () => {
 // la selección puede abarcar varios lotes: se asigna lote por lote
 $('#digi-asignar').addEventListener('click', async () => {
   const porLote = new Map();
-  for (const c of $$('#digi-por-asignar .sel-carpeta:checked')) {
-    porLote.set(c.dataset.lote, [...(porLote.get(c.dataset.lote) || []), Number(c.dataset.id)]);
+  for (const c of $$('#digi-por-asignar .sel-caja:checked')) {
+    porLote.set(c.dataset.lote, [...(porLote.get(c.dataset.lote) || []), ...c.dataset.ids.split(',').map(Number)]);
   }
   const mesa = $('#digi-mesa').value;
   const boton = $('#digi-asignar');
@@ -1165,25 +1188,37 @@ function pintarMesas(t) {
       esSupervisor() ? 'Dalas de alta en Personal, cada una con su responsable.' : 'Un supervisor las da de alta en Personal.')}</div></div>`;
     return;
   }
+  const yo = estado.sesion.usuario.nombre;
   $('#digi-mesas').innerHTML = visibles.map((m) => {
     const propias = t.en_mesas.filter((c) => c.mesa_id === m.id);
     return `
       <div class="card">
         <div class="card-head">
           <h2>${esc(m.nombre)}${esSupervisor() ? ` <span class="celda-sec">· ${esc(m.sede)}</span>` : ''}</h2>
-          <span class="celda-sec">${esc(m.responsable || 'sin responsable')} · ${num(propias.length)} carpeta${propias.length === 1 ? '' : 's'}</span>
+          <span class="celda-sec">${num(propias.length)} carpeta${propias.length === 1 ? '' : 's'}</span>
+        </div>
+        <div class="mesa-equipo">
+          <span><b>Escanea:</b> ${esc(m.responsable || 'sin escaneador')}</span>
+          <span><b>Preparan:</b> ${m.preparadores?.length ? m.preparadores.map(esc).join(', ') : 'nadie más asignado'}</span>
         </div>
         <div class="card-body no-pad">${propias.length ? `<div class="lista">${propias.map((c) => {
           const [texto] = c.etapa === 'Escaneada' && !c.tiene_archivo ? ['Subir PDF'] : SIGUIENTE_PASO[c.etapa] || [];
+          const leToca = aQuienLeToca(c, m);
+          // desde una mesa cada quien ve solo su paso; los demás roles pueden hacer cualquiera
+          const mio = rol() !== 'Mesa' || !leToca || leToca === yo;
           return `
           <div class="lista-fila">
             <div class="principal">
               ${nombreCarpeta(c)} <span class="pill etapa-${clase(c.etapa)}">${esc(c.etapa)}</span>
               <div class="secundario"><button class="link-btn" data-lote="${c.remision_id}">${esc(c.folio)}</button>
                 · caja ${num(c.caja)} · ${foliosDe(c)} · ${num(c.fojas)} fojas
-                ${c.insertos ? ` · ${num(c.insertos)} inserto${c.insertos === 1 ? '' : 's'}${c.por_reintegrar ? `, ${num(c.por_reintegrar)} por reintegrar` : ''}` : ''}</div>
+                ${c.insertos ? ` · ${num(c.insertos)} inserto${c.insertos === 1 ? '' : 's'}${c.por_reintegrar ? `, ${num(c.por_reintegrar)} por reintegrar` : ''}` : ''}
+                ${c.prep_por ? ` · preparó ${esc(c.prep_por)}` : ''}
+                ${leToca ? ` · <b>le toca a ${esc(leToca)}</b>` : ''}
+                ${esSupervisor() && c.prep_por ? ` · <button class="link-btn" data-reasignar="${c.id}" data-remision="${c.remision_id}"
+                    data-mesa="${m.id}">Reasignar recosido</button>` : ''}</div>
             </div>
-            ${texto ? `<button class="btn" data-paso="${c.id}" data-remision="${c.remision_id}">${texto}</button>` : ''}
+            ${texto && mio ? `<button class="btn" data-paso="${c.id}" data-remision="${c.remision_id}">${texto}</button>` : ''}
           </div>`; }).join('')}</div>`
           : vacio('Sin carpetas', rol() === 'Mesa'
               ? 'Aquí aparecerán las carpetas que asignen a tu mesa.'
@@ -1198,6 +1233,41 @@ function pintarMesas(t) {
     if (d.etapa === 'Escaneada' && !d.archivo) return ventanaSubirPdf(r, d, cargarDigitalizacion);
     SIGUIENTE_PASO[d.etapa]?.[1](r, d, cargarDigitalizacion);
   }));
+  $$('#digi-mesas [data-reasignar]').forEach((b) => b.addEventListener('click', () => {
+    const c = t.en_mesas.find((x) => x.id === Number(b.dataset.reasignar));
+    reasignarRecosido(c, t.mesas.find((m) => m.id === Number(b.dataset.mesa)));
+  }));
+}
+
+/** Quién debe hacer el siguiente paso de una carpeta en su mesa (null: cualquiera de la mesa). */
+function aQuienLeToca(c, mesa) {
+  if (c.etapa === 'Descosida' || (c.etapa === 'Escaneada' && !c.tiene_archivo)) return mesa.responsable || null;
+  if (c.etapa === 'Escaneada') return c.recoser_asignado || c.prep_por || null;
+  return null;
+}
+
+/** El supervisor pasa el recosido a otra persona de la mesa, con su motivo. */
+function reasignarRecosido(c, mesa) {
+  const actual = c.recoser_asignado || c.prep_por;
+  const personas = [mesa.responsable, ...(mesa.preparadores || [])].filter((p) => p && p !== actual);
+  if (!personas.length) return aviso(`En la ${mesa.nombre} no hay otra persona a quien reasignarla.`, 'error');
+  abrirModal({
+    titulo: `Reasignar recosido · ${c.nuc || c.descripcion}`,
+    cuerpo: `
+      <p class="sub" style="margin-bottom:12px">Hoy la debe recoser <b>${esc(actual)}</b>, quien la ${c.recoser_asignado ? 'tiene reasignada' : 'descosió'}.
+        Solo se pasa a otra persona de la ${esc(mesa.nombre)}.</p>
+      <label class="campo"><span>Pasarla a</span>
+        <select id="ra-a">${personas.map((p) => `<option>${esc(p)}</option>`).join('')}</select></label>
+      <label class="campo" style="margin-top:10px"><span>Motivo</span>
+        <textarea id="ra-motivo" rows="2" placeholder="Ej. la preparadora salió de incapacidad"></textarea></label>`,
+    botones: [
+      { texto: 'Cancelar', accion: cerrarModal },
+      { texto: 'Reasignar', clase: 'btn btn-primary', accion: () => enviar(
+        `/api/remisiones/${c.remision_id}/carpetas/${c.id}/reasignacion`,
+        { a: $('#ra-a').value, motivo: $('#ra-motivo').value },
+        'Recosido reasignado.', cargarDigitalizacion) }
+    ]
+  });
 }
 
 /* ── traslados de cajas entre sedes ── */
@@ -1555,13 +1625,14 @@ async function cargarMesas() {
   $('#btn-alta-mesa').hidden = !esSupervisor();
   $('#tabla-mesas').innerHTML = mesas.length ? `
     <table class="tabla">
-      <thead><tr><th>Mesa</th><th>Sede</th><th>Responsable</th><th class="num">En la mesa ahora</th>
+      <thead><tr><th>Mesa</th><th>Sede</th><th>Escaneador</th><th>Preparadores</th><th class="num">En la mesa ahora</th>
         <th class="num">Carpetas escaneadas</th><th></th></tr></thead>
       <tbody>${mesas.map((m) => `
         <tr style="cursor:default"${m.activa ? '' : ' class="baja"'}>
           <td><b style="font-weight:500">${esc(m.nombre)}</b>${m.activa ? '' : ' <span class="pill">Inactiva</span>'}</td>
           <td class="celda-sec">${esc(m.sede || '—')}</td>
           <td>${esc(m.responsable || '—')}</td>
+          <td class="celda-sec">${m.preparadores?.length ? m.preparadores.map(esc).join(', ') : '—'}</td>
           <td class="num">${num(m.en_mesa)}</td>
           <td class="num">${num(m.escaneadas)}</td>
           <td style="text-align:right">${esSupervisor() ? `<button class="link-btn" data-editar-mesa="${m.id}">Editar</button>` : ''}</td>
@@ -1569,7 +1640,7 @@ async function cargarMesas() {
       </tbody>
     </table>`
     : vacio('Sin mesas registradas', esSupervisor()
-        ? 'Da de alta las mesas de digitalización y su responsable.'
+        ? 'Da de alta las mesas de digitalización y su escaneador.'
         : 'Un supervisor da de alta las mesas de digitalización.');
   $$('#tabla-mesas [data-editar-mesa]').forEach((b) => b.addEventListener('click', () =>
     formularioMesa(mesas.find((m) => m.id === Number(b.dataset.editarMesa)))));
@@ -1585,11 +1656,12 @@ function formularioMesa(mesa = null) {
       <label class="campo" style="margin-top:12px"><span>Sede</span>
         <select id="m-sede">${(estado.catalogos.sedes || []).filter((s) => s.activa).map((s) =>
           `<option value="${s.id}"${s.id === (m.sede_id ?? estado.sesion.usuario.sede_id) ? ' selected' : ''}>${esc(s.nombre)}</option>`).join('')}</select></label>
-      <label class="campo" style="margin-top:12px"><span>Responsable</span>
+      <label class="campo" style="margin-top:12px"><span>Escaneador (responsable de la mesa)</span>
         <select id="m-responsable"><option value=""></option>${personas.map((u) =>
           `<option${u.nombre === m.responsable ? ' selected' : ''}>${esc(u.nombre)}</option>`).join('')}</select></label>
       ${mesa ? `<label class="check" style="margin-top:12px"><input type="checkbox" id="m-activa"${m.activa ? ' checked' : ''}> Activa</label>` : ''}
-      <p class="sub" style="margin-top:12px">Al cambiar el responsable, lo ya escaneado conserva a quien estaba a cargo en ese momento.</p>`,
+      <p class="sub" style="margin-top:12px">Solo el escaneador escanea y sube los PDF de esta mesa. Los preparadores son las personas con rol Mesa
+        asignadas a ella: descosen, depuran y recosen. Al cambiar el escaneador, lo ya escaneado conserva a quien estaba a cargo.</p>`,
     botones: [
       { texto: 'Cancelar', accion: cerrarModal },
       { texto: 'Guardar', clase: 'btn btn-primary', accion: async () => {
@@ -2639,7 +2711,7 @@ function pedirMotivo({ titulo, explica, etiqueta = 'Motivo', boton, peligro = fa
    de insertos) → mesa → escaneo → reintegración y recosido. Nada salta un paso. */
 
 const ACCION_ETAPA = {
-  'Por asignar': ['data-a-mesa', 'Asignar a mesa'],
+  'Por asignar': ['data-a-mesa', 'Asignar su caja a mesa'],
   'En mesa': ['data-preparar', 'Descoser y revisar'],
   'Descosida': ['data-escaneo', 'Registrar escaneo'],
   'Escaneada': ['data-recoser', 'Reintegrar y recoser']
@@ -2762,7 +2834,11 @@ function prepararCarpeta(r, d, alTerminar) {
           <span>Tipo</span><span>Qué es</span><span>Hoja</span><span>Lado</span><span></span></div>
         <div id="p-insertos"></div>
       </div>
-      <label class="campo" style="margin-top:12px"><span>Notas</span><textarea id="p-notas" rows="2"></textarea></label>`,
+      <label class="campo" style="margin-top:12px"><span>Hojas dañadas</span>
+        <input id="p-danos" maxlength="500" placeholder="Folios y qué tienen. Ej. folios 12 y 13 rotos en la esquina"></label>
+      <p class="sub" style="margin-top:4px">Si anotas hojas dañadas se abre una incidencia para el supervisor; la carpeta sigue su proceso.</p>
+      <label class="campo" style="margin-top:12px"><span>Otros detalles</span><textarea id="p-notas" rows="2"
+        placeholder="Fotografías, sellos, hojas de otro tamaño, lo que convenga saber"></textarea></label>`,
     botones: [
       { texto: 'Cancelar', accion: cerrarModal },
       { texto: 'Registrar', clase: 'btn btn-primary', accion: () => enviar(`/api/remisiones/${r.id}/carpetas/${d.id}/preparacion`, {
@@ -2775,6 +2851,7 @@ function prepararCarpeta(r, d, alTerminar) {
           foja: i.querySelector('.i-foja').value,
           lado: i.querySelector('.i-lado').value
         })),
+        hojas_danadas: $('#p-danos').value,
         notas: $('#p-notas').value
       }, 'Carpeta descosida y revisada.', alTerminar) }
     ]
@@ -3163,7 +3240,8 @@ function conectarSeccion(r) {
   $$('#sheet-seccion [data-preparar]').forEach((b) => b.addEventListener('click', () =>
     prepararCarpeta(r, carpeta(b.dataset.preparar), tras)));
   $$('#sheet-seccion [data-a-mesa]').forEach((b) => b.addEventListener('click', () =>
-    enviarAMesa(r, [carpeta(b.dataset.aMesa)], tras)));
+    // una caja va entera a una mesa: con la carpeta van las demás de su caja que esperan mesa
+    enviarAMesa(r, r.documentos.filter((d) => d.caja === carpeta(b.dataset.aMesa).caja && d.etapa === 'Por asignar'), tras)));
   $$('#sheet-seccion [data-caja-a-mesa]').forEach((b) => b.addEventListener('click', () =>
     enviarAMesa(r, r.documentos.filter((d) => d.caja === Number(b.dataset.cajaAMesa) && d.etapa === 'Por asignar'), tras)));
   $$('#sheet-seccion [data-escaneo]').forEach((b) => b.addEventListener('click', () =>
