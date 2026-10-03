@@ -7,7 +7,12 @@ situación se reciben; el avance de la captura, las incidencias del servicio y
 la devolución con su punto de aceptación.
 
 **Manual para el personal:** [docs/guia-rapida.md](docs/guia-rapida.md), una
-guía corta por puesto (Mesa, Recepción, Operador y Supervisor).
+guía corta por puesto (Mesa, Recepción, Operador y Supervisor); también en
+[PDF con imágenes](docs/guia-rapida.pdf) para imprimir.
+
+**Flujo de operación en BPMN 2.0:** [docs/flujo-operacion.bpmn](docs/flujo-operacion.bpmn)
+(se abre en Camunda Modeler o en <https://demo.bpmn.io>), con su imagen en
+[PNG](docs/flujo-operacion.png) y [SVG](docs/flujo-operacion.svg).
 
 ## Requisitos
 

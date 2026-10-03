@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Def_bitacora" targetNamespace="https://bitacora.digitalizacion/bpmn" exporter="Bitácora de digitalización" exporterVersion="1.0">
+  <bpmn:collaboration id="Colab">
+    <bpmn:participant id="P_dep" name="Dependencia (PGJEH)" />
+    <bpmn:participant id="P_bit" name="Centro de digitalización" processRef="Proc_bitacora" />
+    <bpmn:messageFlow id="m1" name="Cajas con carpetas" sourceRef="P_dep" targetRef="ini" />
+    <bpmn:messageFlow id="m2" name="Acuse de recepción firmado" sourceRef="t_acuse" targetRef="P_dep" />
+    <bpmn:messageFlow id="m3" name="Cajas devueltas y acuse de devolución" sourceRef="fin" targetRef="P_dep" />
+  </bpmn:collaboration>
+  <bpmn:process id="Proc_bitacora" name="Recepción, digitalización y devolución de carpetas" isExecutable="false">
+    <bpmn:laneSet id="Carriles">
+      <bpmn:lane id="L_rec" name="Recepción / Operador">
+        <bpmn:flowNodeRef>ini</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_capturar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_acuse</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_validar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g_coincide</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_diferencia</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g_union1</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g_sede</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_enviar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_recibir</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g_union2</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_asignar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g_lote</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>fin_carpeta</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_cotejar</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_devolver</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>fin</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="L_mesa" name="Mesa de digitalización">
+        <bpmn:flowNodeRef>t_descoser</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g_fojas</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_insertos</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_escanear</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>g_completo</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_pdf</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_recoser</bpmn:flowNodeRef>
+      </bpmn:lane>
+      <bpmn:lane id="L_sup" name="Supervisor">
+        <bpmn:flowNodeRef>t_incidencia</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>ini_sol</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>t_sol</bpmn:flowNodeRef>
+        <bpmn:flowNodeRef>fin_sol</bpmn:flowNodeRef>
+      </bpmn:lane>
+    </bpmn:laneSet>
+    <bpmn:startEvent id="ini" name="Llegan las cajas">
+      <bpmn:outgoing>f1</bpmn:outgoing>
+      <bpmn:messageEventDefinition id="ini_msg" />
+    </bpmn:startEvent>
+    <bpmn:userTask id="t_capturar" name="Capturar recepción por cajas y carpetas (NUC, folios, fojas)">
+      <bpmn:incoming>f1</bpmn:incoming>
+      <bpmn:outgoing>f2</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="t_acuse" name="Imprimir acuse y etiquetas; firmar acuse">
+      <bpmn:incoming>f2</bpmn:incoming>
+      <bpmn:outgoing>f3</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="t_validar" name="Validar recepción: contar carpeta por carpeta">
+      <bpmn:incoming>f3</bpmn:incoming>
+      <bpmn:outgoing>f4</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="g_coincide" name="¿Coincide con lo asentado?">
+      <bpmn:incoming>f4</bpmn:incoming>
+      <bpmn:outgoing>f5</bpmn:outgoing>
+      <bpmn:outgoing>f6</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="t_diferencia" name="Registrar la diferencia con su explicación">
+      <bpmn:incoming>f6</bpmn:incoming>
+      <bpmn:outgoing>f7</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="g_union1" name="">
+      <bpmn:incoming>f5</bpmn:incoming>
+      <bpmn:incoming>f7</bpmn:incoming>
+      <bpmn:outgoing>f8</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:exclusiveGateway id="g_sede" name="¿Se trabaja en otra sede?">
+      <bpmn:incoming>f8</bpmn:incoming>
+      <bpmn:outgoing>f9</bpmn:outgoing>
+      <bpmn:outgoing>f10</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="t_enviar" name="Enviar cajas a la otra sede (traslado)">
+      <bpmn:incoming>f10</bpmn:incoming>
+      <bpmn:outgoing>f11</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="t_recibir" name="Recibir el traslado y contar lo que llegó">
+      <bpmn:incoming>f11</bpmn:incoming>
+      <bpmn:outgoing>f12</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="g_union2" name="">
+      <bpmn:incoming>f9</bpmn:incoming>
+      <bpmn:incoming>f12</bpmn:incoming>
+      <bpmn:outgoing>f13</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="t_asignar" name="Asignar carpetas a una mesa">
+      <bpmn:incoming>f13</bpmn:incoming>
+      <bpmn:incoming>f22</bpmn:incoming>
+      <bpmn:outgoing>f14</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="t_descoser" name="Descoser, revisar folios y contar fojas">
+      <bpmn:incoming>f14</bpmn:incoming>
+      <bpmn:incoming>f18</bpmn:incoming>
+      <bpmn:outgoing>f15</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="g_fojas" name="¿Las fojas cuadran?">
+      <bpmn:incoming>f15</bpmn:incoming>
+      <bpmn:outgoing>f16</bpmn:outgoing>
+      <bpmn:outgoing>f17</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="t_incidencia" name="Aclarar la diferencia y resolver la incidencia">
+      <bpmn:incoming>f17</bpmn:incoming>
+      <bpmn:outgoing>f18</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="t_insertos" name="Retirar post-its y registrar hoja y lado">
+      <bpmn:incoming>f16</bpmn:incoming>
+      <bpmn:outgoing>f19</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="t_escanear" name="Escanear y registrar fojas e imágenes">
+      <bpmn:incoming>f19</bpmn:incoming>
+      <bpmn:outgoing>f20</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="g_completo" name="¿Escaneo completo?">
+      <bpmn:incoming>f20</bpmn:incoming>
+      <bpmn:outgoing>f21</bpmn:outgoing>
+      <bpmn:outgoing>f22</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:userTask id="t_pdf" name="Subir el PDF (páginas = imágenes)">
+      <bpmn:incoming>f21</bpmn:incoming>
+      <bpmn:outgoing>f23</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="t_recoser" name="Reintegrar post-its y recoser">
+      <bpmn:incoming>f23</bpmn:incoming>
+      <bpmn:outgoing>f24</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:exclusiveGateway id="g_lote" name="¿Todo el lote está recosido?">
+      <bpmn:incoming>f24</bpmn:incoming>
+      <bpmn:outgoing>f25</bpmn:outgoing>
+      <bpmn:outgoing>f26</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:endEvent id="fin_carpeta" name="Carpeta terminada; espera al resto del lote">
+      <bpmn:incoming>f26</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:userTask id="t_cotejar" name="Cotejar devolución caja por caja">
+      <bpmn:incoming>f25</bpmn:incoming>
+      <bpmn:outgoing>f27</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:userTask id="t_devolver" name="Registrar devolución y firmar acuse">
+      <bpmn:incoming>f27</bpmn:incoming>
+      <bpmn:outgoing>f28</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:endEvent id="fin" name="Lote devuelto">
+      <bpmn:incoming>f28</bpmn:incoming>
+      <bpmn:messageEventDefinition id="fin_msg" />
+    </bpmn:endEvent>
+    <bpmn:startEvent id="ini_sol" name="Alguien pide corregir o eliminar">
+      <bpmn:outgoing>f29</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:userTask id="t_sol" name="Aprobar o rechazar con motivo (otro supervisor)">
+      <bpmn:incoming>f29</bpmn:incoming>
+      <bpmn:outgoing>f30</bpmn:outgoing>
+    </bpmn:userTask>
+    <bpmn:endEvent id="fin_sol" name="Queda registrado en la bitácora">
+      <bpmn:incoming>f30</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="f1" name="" sourceRef="ini" targetRef="t_capturar" />
+    <bpmn:sequenceFlow id="f2" name="" sourceRef="t_capturar" targetRef="t_acuse" />
+    <bpmn:sequenceFlow id="f3" name="" sourceRef="t_acuse" targetRef="t_validar" />
+    <bpmn:sequenceFlow id="f4" name="" sourceRef="t_validar" targetRef="g_coincide" />
+    <bpmn:sequenceFlow id="f5" name="Sí" sourceRef="g_coincide" targetRef="g_union1" />
+    <bpmn:sequenceFlow id="f6" name="No" sourceRef="g_coincide" targetRef="t_diferencia" />
+    <bpmn:sequenceFlow id="f7" name="" sourceRef="t_diferencia" targetRef="g_union1" />
+    <bpmn:sequenceFlow id="f8" name="" sourceRef="g_union1" targetRef="g_sede" />
+    <bpmn:sequenceFlow id="f9" name="No" sourceRef="g_sede" targetRef="g_union2" />
+    <bpmn:sequenceFlow id="f10" name="Sí" sourceRef="g_sede" targetRef="t_enviar" />
+    <bpmn:sequenceFlow id="f11" name="" sourceRef="t_enviar" targetRef="t_recibir" />
+    <bpmn:sequenceFlow id="f12" name="" sourceRef="t_recibir" targetRef="g_union2" />
+    <bpmn:sequenceFlow id="f13" name="" sourceRef="g_union2" targetRef="t_asignar" />
+    <bpmn:sequenceFlow id="f14" name="" sourceRef="t_asignar" targetRef="t_descoser" />
+    <bpmn:sequenceFlow id="f15" name="" sourceRef="t_descoser" targetRef="g_fojas" />
+    <bpmn:sequenceFlow id="f16" name="Sí" sourceRef="g_fojas" targetRef="t_insertos" />
+    <bpmn:sequenceFlow id="f17" name="No" sourceRef="g_fojas" targetRef="t_incidencia" />
+    <bpmn:sequenceFlow id="f18" name="Aclarada" sourceRef="t_incidencia" targetRef="t_descoser" />
+    <bpmn:sequenceFlow id="f19" name="" sourceRef="t_insertos" targetRef="t_escanear" />
+    <bpmn:sequenceFlow id="f20" name="" sourceRef="t_escanear" targetRef="g_completo" />
+    <bpmn:sequenceFlow id="f21" name="Sí" sourceRef="g_completo" targetRef="t_pdf" />
+    <bpmn:sequenceFlow id="f22" name="No: vuelve a mesa" sourceRef="g_completo" targetRef="t_asignar" />
+    <bpmn:sequenceFlow id="f23" name="" sourceRef="t_pdf" targetRef="t_recoser" />
+    <bpmn:sequenceFlow id="f24" name="" sourceRef="t_recoser" targetRef="g_lote" />
+    <bpmn:sequenceFlow id="f25" name="Sí" sourceRef="g_lote" targetRef="t_cotejar" />
+    <bpmn:sequenceFlow id="f26" name="No" sourceRef="g_lote" targetRef="fin_carpeta" />
+    <bpmn:sequenceFlow id="f27" name="" sourceRef="t_cotejar" targetRef="t_devolver" />
+    <bpmn:sequenceFlow id="f28" name="" sourceRef="t_devolver" targetRef="fin" />
+    <bpmn:sequenceFlow id="f29" name="" sourceRef="ini_sol" targetRef="t_sol" />
+    <bpmn:sequenceFlow id="f30" name="" sourceRef="t_sol" targetRef="fin_sol" />
+    <bpmn:textAnnotation id="a1"><bpmn:text>Por cada carpeta del lote: los pasos de la mesa se repiten carpeta por carpeta</bpmn:text></bpmn:textAnnotation>
+    <bpmn:association id="a1_asoc" sourceRef="t_descoser" targetRef="a1" />
+    <bpmn:textAnnotation id="a2"><bpmn:text>Nada se borra: cada paso queda con nombre, fecha y hora</bpmn:text></bpmn:textAnnotation>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="Diagrama"><bpmndi:BPMNPlane id="Plano" bpmnElement="Colab">
+    <bpmndi:BPMNShape id="P_dep_di" bpmnElement="P_dep" isHorizontal="true"><dc:Bounds x="40" y="60" width="3835" height="80" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="P_bit_di" bpmnElement="P_bit" isHorizontal="true"><dc:Bounds x="40" y="200" width="3835" height="760" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="L_rec_di" bpmnElement="L_rec" isHorizontal="true"><dc:Bounds x="70" y="200" width="3805" height="300" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="L_mesa_di" bpmnElement="L_mesa" isHorizontal="true"><dc:Bounds x="70" y="500" width="3805" height="240" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="L_sup_di" bpmnElement="L_sup" isHorizontal="true"><dc:Bounds x="70" y="740" width="3805" height="220" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="ini_di" bpmnElement="ini"><dc:Bounds x="157" y="332" width="36" height="36" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_capturar_di" bpmnElement="t_capturar"><dc:Bounds x="275" y="310" width="130" height="80" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_acuse_di" bpmnElement="t_acuse"><dc:Bounds x="440" y="310" width="130" height="80" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_validar_di" bpmnElement="t_validar"><dc:Bounds x="605" y="310" width="130" height="80" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="g_coincide_di" bpmnElement="g_coincide" isMarkerVisible="true"><dc:Bounds x="810" y="325" width="50" height="50" /><bpmndi:BPMNLabel><dc:Bounds x="775" y="291" width="120" height="28" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_diferencia_di" bpmnElement="t_diferencia"><dc:Bounds x="935" y="400" width="130" height="80" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="g_union1_di" bpmnElement="g_union1" isMarkerVisible="true"><dc:Bounds x="1140" y="325" width="50" height="50" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="g_sede_di" bpmnElement="g_sede" isMarkerVisible="true"><dc:Bounds x="1305" y="325" width="50" height="50" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_enviar_di" bpmnElement="t_enviar"><dc:Bounds x="1430" y="222" width="130" height="80" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_recibir_di" bpmnElement="t_recibir"><dc:Bounds x="1595" y="222" width="130" height="80" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="g_union2_di" bpmnElement="g_union2" isMarkerVisible="true"><dc:Bounds x="1800" y="325" width="50" height="50" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_asignar_di" bpmnElement="t_asignar"><dc:Bounds x="1925" y="310" width="130" height="80" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_descoser_di" bpmnElement="t_descoser"><dc:Bounds x="2090" y="580" width="130" height="80" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="g_fojas_di" bpmnElement="g_fojas" isMarkerVisible="true"><dc:Bounds x="2295" y="595" width="50" height="50" /><bpmndi:BPMNLabel><dc:Bounds x="2260" y="561" width="120" height="28" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_incidencia_di" bpmnElement="t_incidencia"><dc:Bounds x="2255" y="790" width="130" height="80" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_insertos_di" bpmnElement="t_insertos"><dc:Bounds x="2420" y="580" width="130" height="80" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_escanear_di" bpmnElement="t_escanear"><dc:Bounds x="2585" y="580" width="130" height="80" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="g_completo_di" bpmnElement="g_completo" isMarkerVisible="true"><dc:Bounds x="2790" y="595" width="50" height="50" /><bpmndi:BPMNLabel><dc:Bounds x="2755" y="561" width="120" height="28" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_pdf_di" bpmnElement="t_pdf"><dc:Bounds x="2915" y="580" width="130" height="80" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_recoser_di" bpmnElement="t_recoser"><dc:Bounds x="3080" y="580" width="130" height="80" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="g_lote_di" bpmnElement="g_lote" isMarkerVisible="true"><dc:Bounds x="3285" y="325" width="50" height="50" /><bpmndi:BPMNLabel><dc:Bounds x="3250" y="291" width="120" height="28" /></bpmndi:BPMNLabel></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="fin_carpeta_di" bpmnElement="fin_carpeta"><dc:Bounds x="3292" y="422" width="36" height="36" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_cotejar_di" bpmnElement="t_cotejar"><dc:Bounds x="3410" y="310" width="130" height="80" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_devolver_di" bpmnElement="t_devolver"><dc:Bounds x="3575" y="310" width="130" height="80" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="fin_di" bpmnElement="fin"><dc:Bounds x="3787" y="332" width="36" height="36" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="ini_sol_di" bpmnElement="ini_sol"><dc:Bounds x="322" y="812" width="36" height="36" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="t_sol_di" bpmnElement="t_sol"><dc:Bounds x="440" y="790" width="130" height="80" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="fin_sol_di" bpmnElement="fin_sol"><dc:Bounds x="652" y="812" width="36" height="36" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="a1_di" bpmnElement="a1"><dc:Bounds x="1590" y="548" width="230" height="52" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNShape id="a2_di" bpmnElement="a2"><dc:Bounds x="805" y="935" width="330" height="22" /></bpmndi:BPMNShape>
+    <bpmndi:BPMNEdge id="f1_di" bpmnElement="f1"><di:waypoint x="193" y="350" /><di:waypoint x="275" y="350" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f2_di" bpmnElement="f2"><di:waypoint x="405" y="350" /><di:waypoint x="440" y="350" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f3_di" bpmnElement="f3"><di:waypoint x="570" y="350" /><di:waypoint x="605" y="350" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f4_di" bpmnElement="f4"><di:waypoint x="735" y="350" /><di:waypoint x="810" y="350" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f5_di" bpmnElement="f5"><di:waypoint x="860" y="350" /><di:waypoint x="1140" y="350" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f6_di" bpmnElement="f6"><di:waypoint x="835" y="375" /><di:waypoint x="835" y="440" /><di:waypoint x="935" y="440" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f7_di" bpmnElement="f7"><di:waypoint x="1065" y="440" /><di:waypoint x="1165" y="440" /><di:waypoint x="1165" y="375" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f8_di" bpmnElement="f8"><di:waypoint x="1190" y="350" /><di:waypoint x="1305" y="350" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f9_di" bpmnElement="f9"><di:waypoint x="1355" y="350" /><di:waypoint x="1800" y="350" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f10_di" bpmnElement="f10"><di:waypoint x="1330" y="325" /><di:waypoint x="1330" y="262" /><di:waypoint x="1430" y="262" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f11_di" bpmnElement="f11"><di:waypoint x="1560" y="262" /><di:waypoint x="1595" y="262" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f12_di" bpmnElement="f12"><di:waypoint x="1725" y="262" /><di:waypoint x="1825" y="262" /><di:waypoint x="1825" y="325" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f13_di" bpmnElement="f13"><di:waypoint x="1850" y="350" /><di:waypoint x="1925" y="350" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f14_di" bpmnElement="f14"><di:waypoint x="2055" y="350" /><di:waypoint x="2155" y="350" /><di:waypoint x="2155" y="580" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f15_di" bpmnElement="f15"><di:waypoint x="2220" y="620" /><di:waypoint x="2295" y="620" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f16_di" bpmnElement="f16"><di:waypoint x="2345" y="620" /><di:waypoint x="2420" y="620" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f17_di" bpmnElement="f17"><di:waypoint x="2320" y="645" /><di:waypoint x="2320" y="790" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f18_di" bpmnElement="f18"><di:waypoint x="2255" y="830" /><di:waypoint x="2155" y="830" /><di:waypoint x="2155" y="660" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f19_di" bpmnElement="f19"><di:waypoint x="2550" y="620" /><di:waypoint x="2585" y="620" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f20_di" bpmnElement="f20"><di:waypoint x="2715" y="620" /><di:waypoint x="2790" y="620" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f21_di" bpmnElement="f21"><di:waypoint x="2840" y="620" /><di:waypoint x="2915" y="620" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f22_di" bpmnElement="f22"><di:waypoint x="2815" y="645" /><di:waypoint x="2815" y="718" /><di:waypoint x="2020" y="718" /><di:waypoint x="2020" y="390" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f23_di" bpmnElement="f23"><di:waypoint x="3045" y="620" /><di:waypoint x="3080" y="620" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f24_di" bpmnElement="f24"><di:waypoint x="3210" y="620" /><di:waypoint x="3248" y="620" /><di:waypoint x="3248" y="350" /><di:waypoint x="3285" y="350" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f25_di" bpmnElement="f25"><di:waypoint x="3335" y="350" /><di:waypoint x="3410" y="350" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f26_di" bpmnElement="f26"><di:waypoint x="3310" y="375" /><di:waypoint x="3310" y="422" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f27_di" bpmnElement="f27"><di:waypoint x="3540" y="350" /><di:waypoint x="3575" y="350" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f28_di" bpmnElement="f28"><di:waypoint x="3705" y="350" /><di:waypoint x="3787" y="350" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f29_di" bpmnElement="f29"><di:waypoint x="358" y="830" /><di:waypoint x="440" y="830" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="f30_di" bpmnElement="f30"><di:waypoint x="570" y="830" /><di:waypoint x="652" y="830" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="m1_di" bpmnElement="m1"><di:waypoint x="175" y="140" /><di:waypoint x="175" y="332" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="m2_di" bpmnElement="m2"><di:waypoint x="505" y="310" /><di:waypoint x="505" y="140" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="m3_di" bpmnElement="m3"><di:waypoint x="3805" y="332" /><di:waypoint x="3805" y="140" /></bpmndi:BPMNEdge>
+    <bpmndi:BPMNEdge id="a1_asoc_di" bpmnElement="a1_asoc"><di:waypoint x="2090" y="620" /><di:waypoint x="1820" y="574" /></bpmndi:BPMNEdge>
+  </bpmndi:BPMNPlane></bpmndi:BPMNDiagram>
+</bpmn:definitions>
