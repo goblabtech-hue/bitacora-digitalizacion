@@ -6,6 +6,9 @@ recepciona, de qué dependencia, cuántos documentos, cuántas fojas y en qué
 situación se reciben; el avance de la captura, las incidencias del servicio y
 la devolución con su punto de aceptación.
 
+**Manual para el personal:** [docs/guia-rapida.md](docs/guia-rapida.md), una
+guía corta por puesto (Mesa, Recepción, Operador y Supervisor).
+
 ## Requisitos
 
 Solo Node.js 24 o superior. No hay dependencias externas: la base de datos es
