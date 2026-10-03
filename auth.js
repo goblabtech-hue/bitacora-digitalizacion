@@ -34,17 +34,35 @@ export const pruebaActiva = () => process.env.BITACORA_ACCESO_PRUEBA === '1';
 /** Hay control de acceso si está Google o si está la entrada de prueba. */
 export const accesoActivo = () => ssoActivo() || pruebaActiva();
 
-/** Crea las cuentas de prueba la primera vez, si no hay nadie dado de alta. */
+/** Crea las cuentas de prueba que falten: dos supervisores (una solicitud la
+ *  resuelve alguien distinto de quien la pide), una persona de mesa y una de
+ *  otra sede, para poder probar todos los permisos. Solo en la base de prueba. */
 export function sembrarPrueba() {
   if (!pruebaActiva()) return;
-  if (db.prepare('SELECT COUNT(*) AS n FROM usuarios').get().n > 0) return;
   const t = new Date().toISOString();
-  const alta = db.prepare('INSERT INTO usuarios (nombre, email, rol, creado_en) VALUES (?,?,?,?)');
-  for (const [nombre, correo, rol] of [
-    ['Supervisora de prueba', `supervisora@${DOMINIO_PRUEBA}`, 'Supervisor'],
-    ['Operador de prueba',    `operador@${DOMINIO_PRUEBA}`,    'Operador'],
-    ['Recepción de prueba',   `recepcion@${DOMINIO_PRUEBA}`,   'Recepción']
-  ]) alta.run(nombre, correo, rol, t);
+  const principal = db.prepare('SELECT id FROM sedes ORDER BY id LIMIT 1').get().id;
+  if (!db.prepare("SELECT 1 FROM sedes WHERE nombre = 'Sede Norte'").get()) {
+    db.prepare("INSERT INTO sedes (nombre, creado_en) VALUES ('Sede Norte', ?)").run(t);
+  }
+  const norte = db.prepare("SELECT id FROM sedes WHERE nombre = 'Sede Norte'").get().id;
+  if (!db.prepare("SELECT 1 FROM mesas WHERE sede_id = ? AND nombre = 'Mesa 1'").get(principal)) {
+    db.prepare("INSERT INTO mesas (nombre, responsable, creado_en, sede_id) VALUES ('Mesa 1', 'Mesa 1 de prueba', ?, ?)")
+      .run(t, principal);
+  }
+  const mesa1 = db.prepare("SELECT id FROM mesas WHERE sede_id = ? AND nombre = 'Mesa 1'").get(principal).id;
+
+  const alta = db.prepare(`INSERT INTO usuarios (nombre, email, rol, creado_en, sede_id, mesa_id)
+                           VALUES (?,?,?,?,?,?)`);
+  for (const [nombre, correo, rol, sede, mesa] of [
+    ['Supervisora de prueba',     `supervisora@${DOMINIO_PRUEBA}`, 'Supervisor', principal, null],
+    ['Supervisor 2 de prueba',    `supervisor2@${DOMINIO_PRUEBA}`, 'Supervisor', principal, null],
+    ['Operador de prueba',        `operador@${DOMINIO_PRUEBA}`,    'Operador',   principal, null],
+    ['Recepción de prueba',       `recepcion@${DOMINIO_PRUEBA}`,   'Recepción',  principal, null],
+    ['Mesa 1 de prueba',          `mesa1@${DOMINIO_PRUEBA}`,       'Mesa',       principal, mesa1],
+    ['Recepción Norte de prueba', `norte@${DOMINIO_PRUEBA}`,       'Recepción',  norte,     null]
+  ]) {
+    if (!db.prepare('SELECT 1 FROM usuarios WHERE lower(email) = ?').get(correo)) alta.run(nombre, correo, rol, t, sede, mesa);
+  }
 }
 
 export function usuariosPrueba() {
@@ -225,7 +243,7 @@ function autorizar(correo, nombre, foto) {
   if (!persona) {
     const hayAlguien = db.prepare('SELECT COUNT(*) AS n FROM usuarios').get().n > 0;
     if (hayAlguien) {
-      throw new Error(`${correo} no está dado de alta en Bitácora Digitalización. Pide a un supervisor que te agregue.`);
+      throw new Error(`${correo} no está dado de alta en la Bitácora de digitalización. Pide a un supervisor que te agregue.`);
     }
     // primer acceso del sistema: quien entra queda como supervisor
     db.prepare('INSERT INTO usuarios (nombre, email, rol, creado_en) VALUES (?,?,?,?)')

@@ -1,7 +1,7 @@
 # Despliegue en Fly.io.
 # Dallas ('dfw') es la región disponible más cercana a México; Fly ya no
 # ofrece Querétaro.
-app = "cts-bitacora"
+app = "bitacora-digitalizacion"
 primary_region = "dfw"
 
 [build]

@@ -96,11 +96,11 @@ function filaLote(l, i) {
         <div>
           <b>Documentos entregados</b>
           <table class="tabla tabla-anidada">
-            <thead><tr><th>Descripción</th><th>Tipo</th>
-              <th class="num">Cant.</th><th class="num">Fojas</th><th>Situación al recibir</th></tr></thead>
+            <thead><tr><th>Caja</th><th>Carpeta</th>
+              <th class="num">Fojas</th><th>Situación al recibir</th></tr></thead>
             <tbody>${l.documentos.map((d) => `
-              <tr><td>${esc(d.descripcion)}</td><td class="celda-sec">${esc(d.tipo || '—')}</td>
-                <td class="num">${num(d.cantidad)}</td><td class="num">${num(d.fojas)}</td>
+              <tr><td class="celda-sec">${num(d.caja)}</td><td>${esc(d.descripcion)}</td>
+                <td class="num">${num(d.fojas)}</td>
                 <td class="celda-sec">${esc(d.situacion)}</td></tr>`).join('')}
             </tbody>
           </table>

@@ -85,14 +85,6 @@ input, select, textarea, button { font: inherit; color: inherit; }
 }
 
 .brand { display: flex; align-items: center; gap: 10px; padding: 0 8px; }
-.brand-logo { height: 30px; width: auto; display: block; flex: none; }
-.acceso-logo { width: 226px; height: auto; margin: 2px auto 22px; display: block; }
-
-/* en oscuro el logotipo se invierte a blanco, como manda cualquier
-   manual de marca para fondos oscuros */
-@media (prefers-color-scheme: dark) {
-  .brand-logo, .acceso-logo { filter: brightness(0) invert(1); }
-}
 .brand-mark {
   width: 30px; height: 30px; border-radius: 9px;
   background: linear-gradient(180deg, #4ca0ff, var(--blue));
@@ -105,6 +97,8 @@ input, select, textarea, button { font: inherit; color: inherit; }
 .brand-text span { font-size: 11.5px; color: var(--text-2); }
 
 .nav { display: flex; flex-direction: column; gap: 2px; }
+.nav-corto { display: none; }
+@media (max-width: 900px) { .nav-corto { display: inline; } }
 .nav-item {
   display: flex; align-items: center; gap: 10px;
   padding: 8px 10px; border: 0; border-radius: var(--r-sm);
@@ -176,7 +170,7 @@ input, select, textarea, button { font: inherit; color: inherit; }
   padding: 16px 20px 12px;
 }
 .card-body { padding: 4px 20px 20px; }
-.card-body.no-pad { padding: 0; }
+.card-body.no-pad { padding: 0; overflow-x: auto; }   /* una tabla ancha se desplaza dentro de su tarjeta */
 
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
 
@@ -216,6 +210,10 @@ input, select, textarea, button { font: inherit; color: inherit; }
 
 /* pestañas dentro de la hoja de detalle */
 .sheet-tabs { width: 100%; overflow-x: auto; }
+/* con muchos estados, el filtro se desplaza en vez de ensanchar la página */
+.filtros .segmented { max-width: 100%; overflow-x: auto; }
+.filtros .segmented button { white-space: nowrap; }
+.filtros-fecha { flex-wrap: wrap; max-width: 100%; }
 .sheet-tabs button { flex: 1; }
 
 /* línea de tiempo del historial */
@@ -248,6 +246,10 @@ input, select, textarea, button { font: inherit; color: inherit; }
 .tabla tbody tr:hover { background: var(--surface-2); }
 .tabla tbody tr:last-child td { border-bottom: 0; }
 .tabla tr.baja { opacity: .55; }
+/* renglón que abre cada caja, con su subtotal */
+.tabla tr.fila-caja td { background: var(--surface-2); font-size: 13px; color: var(--text-2); padding: 8px 16px; }
+.tabla tr.fila-caja b { color: var(--text); }
+.tabla tbody tr.fila-caja:hover { background: none; }
 .tabla .num { text-align: right; font-variant-numeric: tabular-nums; }
 .folio { font-variant-numeric: tabular-nums; font-weight: 500; letter-spacing: -.01em; }
 .celda-sec { color: var(--text-2); font-size: 12.5px; }
@@ -280,6 +282,110 @@ input, select, textarea, button { font: inherit; color: inherit; }
 .pill.aceptado            { background: var(--green-soft);  color: var(--green); }
 .pill.aceptado-con-observaciones { background: var(--orange-soft); color: var(--orange); }
 .pill.rechazado           { background: rgba(215,0,21,.12);  color: var(--red); }
+.pill.cancelado           { background: rgba(215,0,21,.12);  color: var(--red); }
+/* solicitudes */
+.pill.pendiente           { background: var(--orange-soft); color: var(--orange); }
+.pill.aprobada, .pill.usada { background: var(--green-soft); color: var(--green); }
+.pill.rechazada           { background: rgba(215,0,21,.12);  color: var(--red); }
+/* etapas de cada carpeta */
+.pill.etapa-por-asignar   { background: var(--gray-soft);   color: var(--text-2); }
+.pill.etapa-en-mesa       { background: var(--orange-soft); color: var(--orange); }
+.pill.etapa-descosida     { background: var(--orange-soft); color: var(--orange); }
+.pill.etapa-escaneada     { background: var(--blue-soft);   color: var(--blue); }
+.pill.etapa-recosida      { background: var(--green-soft);  color: var(--green); }
+
+/* quien trabaja en una mesa solo ve su trabajo */
+body.modo-mesa .nav-item:not([data-vista="digitalizacion"]),
+body.modo-mesa .sidebar-foot,
+body.modo-mesa #digi-por-asignar-card,
+body.modo-mesa #digi-sin-validar-card,
+body.modo-mesa #digi-traslados-card { display: none !important; }
+
+/* vista de Digitalización: barra para asignar lo seleccionado y las mesas */
+.asignar-barra {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 12px 20px; border-top: 1px solid var(--separator); background: var(--surface-2);
+  position: sticky; bottom: 0;
+}
+.asignar-barra span { font-size: 13.5px; font-weight: 500; margin-right: auto; }
+.asignar-barra select { width: auto; max-width: 100%; }
+#digi-stats { grid-template-columns: repeat(4, 1fr); }
+@media (max-width: 900px) { #digi-stats { grid-template-columns: 1fr 1fr; } }
+/* selector de periodo del Panel y del Reporte */
+.periodo { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.periodo .segmented { max-width: 100%; overflow-x: auto; }
+.periodo .segmented button { white-space: nowrap; }
+
+/* reporte diario: indicadores de cada etapa */
+.reporte { display: flex; flex-direction: column; gap: 16px; }
+.indicadores { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(130px, 40%), 1fr)); gap: 8px; }
+.indicador { background: var(--surface-2); border-radius: var(--r-md); padding: 10px 12px; }
+.indicador span { display: block; font-size: 12px; color: var(--text-2); }
+.indicador b { font-size: 20px; font-variant-numeric: tabular-nums; }
+.indicador.alerta { background: var(--orange-soft); }
+.indicador.alerta b { color: var(--orange); }
+.reporte-desglose { padding: 12px 16px 2px; font-size: 12.5px; font-weight: 600; color: var(--text-2); }
+.doc .reporte-desglose { padding: 4px 0 2px; color: #444; }
+.doc-h2 { font-size: 11.5pt; margin: 14px 0 4px; }
+#reporte-fecha { width: auto; }
+.mesas { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 380px), 1fr)); gap: 16px; }
+.mesas .lista-fila .btn { flex: none; }
+
+/* avisos dentro de una tarjeta: cancelada, eliminada, falta un paso… */
+.banner {
+  margin-top: 14px; padding: 10px 14px; border-radius: var(--r-md);
+  background: var(--orange-soft); color: var(--text); font-size: 13.5px; line-height: 1.45;
+}
+.banner-rojo { background: rgba(215,0,21,.10); }
+
+/* huella de un expediente digital */
+code.huella { font-size: 12px; background: var(--surface-2); padding: 2px 6px; border-radius: 4px; }
+
+/* listados desde el Panel: filtros en una fila que se acomoda */
+#listado-filtros { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+#listado-filtros .buscador { flex: 1 1 260px; }
+#listado-filtros select { width: auto; max-width: 100%; }
+#listado-cuerpo td.folio { white-space: nowrap; }
+
+/* el Panel lleva al detalle: cifras y renglones se pueden pulsar */
+button.stat-enlace { text-align: left; font: inherit; color: inherit; border: 0; cursor: pointer;
+  transition: transform .12s ease, box-shadow .12s ease; }
+button.stat-enlace:hover { transform: translateY(-1px); box-shadow: 0 0 0 2px var(--blue-soft); }
+.renglon-enlace { display: block; width: 100%; text-align: left; font: inherit; color: inherit; background: none;
+  border: 0; padding: 6px 8px; margin: 0 -8px 8px; border-radius: var(--r-md); cursor: pointer; }
+.renglon-enlace:hover, .enlace-texto:hover, .evento-enlace:hover { background: var(--surface-2); }
+.enlace-texto { text-align: left; font: inherit; color: inherit; background: none; border: 0; padding: 4px 6px;
+  margin: -4px -6px; border-radius: var(--r-md); cursor: pointer; }
+.evento-enlace { cursor: pointer; border-radius: var(--r-md); }
+@media (prefers-reduced-motion: reduce) { button.stat-enlace { transition: none; } button.stat-enlace:hover { transform: none; } }
+
+/* secciones que puede ver una persona */
+.secciones { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 0 12px;
+  background: var(--surface-2); border-radius: var(--r-md); padding: 6px 12px; }
+.secciones .check:has(input:disabled) { color: var(--text-2); }
+
+/* casillas de confirmación de cada paso */
+.check { display: flex; align-items: flex-start; gap: 9px; padding: 5px 0; font-size: 14px; cursor: pointer; }
+.check input { width: auto; margin-top: 3px; flex: none; }
+
+/* resumen de etapas de un lote */
+.etapas { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.etapa { background: var(--surface-2); border-radius: var(--r-md); padding: 9px 12px; }
+.etapa span { display: block; font-size: 12px; color: var(--text-2); }
+.etapa b { font-size: 20px; font-variant-numeric: tabular-nums; }
+@media (max-width: 700px) { .etapas { grid-template-columns: repeat(3, 1fr); } }
+
+/* insertos retirados al preparar una carpeta */
+.inserto { display: grid; grid-template-columns: 170px minmax(0, 1fr) 76px 240px 28px; gap: 8px; margin-bottom: 6px; align-items: center; }
+.inserto-cols { font-size: 12px; color: var(--text-2); margin-bottom: 2px; }
+.inserto .quitar { border: 0; background: none; color: var(--text-3); cursor: pointer; font-size: 18px; }
+@media (max-width: 700px) {
+  .inserto { grid-template-columns: 1fr 76px 28px; }
+  .inserto .i-descripcion { grid-column: 1 / 3; grid-row: 2; }
+  .inserto .i-lado { grid-column: 1 / 3; }
+  .inserto-cols { display: none; }
+}
+.nuc { font-weight: 600; font-variant-numeric: tabular-nums; }
 
 /* ════════════════════════════════ formas ══════════════════════════════ */
 .campos { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; }
@@ -309,14 +415,49 @@ select { appearance: none; -webkit-appearance: none; cursor: pointer;
   padding-right: 30px;
 }
 
-/* partidas de documentos */
-.partida { padding: 16px 20px; border-top: 1px solid var(--separator); }
-.partida:first-child { border-top: 0; }
-.partida-head {
-  display: flex; align-items: center; justify-content: space-between;
-  font-size: 12px; color: var(--text-2); margin-bottom: 10px;
+/* cajas de la entrega y sus carpetas */
+.caja-bloque { padding: 16px 20px; border-top: 1px solid var(--separator); }
+.caja-bloque:first-child { border-top: 0; }
+.caja-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; }
+.caja-titulo { font-size: 14.5px; }
+.caja-resumen { font-size: 13px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+.caja-head .quitar { margin-left: auto; border: 0; background: none; color: var(--red); cursor: pointer; font-size: 13px; }
+
+.carpeta {
+  display: grid; align-items: center; gap: 6px 8px;
+  grid-template-columns: 24px minmax(110px, 1.3fr) 72px 72px 72px minmax(120px, 1fr) 28px;
+  padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--separator);
 }
-.partida-head .quitar { border: 0; background: none; color: var(--red); cursor: pointer; font-size: 13px; }
+/* arriba lo que identifica y cuenta la carpeta; abajo, lo descriptivo */
+.carpeta .c-descripcion { grid-column: 2 / 5; }
+.carpeta .c-observaciones { grid-column: 5 / 7; }
+.carpeta .quitar { grid-column: 7; grid-row: 1; }
+.carpeta .c-nuc { text-transform: uppercase; font-variant-numeric: tabular-nums; font-weight: 500; }
+.carpeta .c-folio-ini, .carpeta .c-folio-fin { text-align: right; }
+.carpeta-aviso { grid-column: 2 / -1; margin: 0; font-size: 12.5px; color: var(--orange); }
+.carpeta-cols { border-bottom: 0; padding-bottom: 0; margin-bottom: 4px; }
+.carpeta-cols { font-size: 12px; color: var(--text-2); margin-bottom: 4px; }
+.carpeta-num { font-size: 12.5px; color: var(--text-3); text-align: right; font-variant-numeric: tabular-nums; }
+.carpeta .c-fojas { text-align: right; }
+.carpeta .quitar {
+  border: 0; background: none; color: var(--text-3); cursor: pointer;
+  font-size: 18px; line-height: 1; padding: 4px;
+}
+.carpeta .quitar:hover { color: var(--red); }
+.caja-agregar { margin: 4px 0 0 32px; }
+
+/* en el teléfono cada carpeta se apila: NUC arriba, folios en un renglón y lo demás debajo */
+@media (max-width: 700px) {
+  .carpeta-cols { display: none; }
+  .carpeta { grid-template-columns: 24px repeat(3, minmax(0, 1fr)) 28px; }
+  .carpeta .c-nuc { grid-column: 2 / 5; grid-row: 1; }
+  .carpeta .quitar { grid-column: 5; grid-row: 1; }
+  .carpeta .c-folio-ini { grid-column: 2; }
+  .carpeta .c-folio-fin { grid-column: 3; }
+  .carpeta .c-fojas { grid-column: 4; }
+  .carpeta .c-situacion, .carpeta .c-descripcion, .carpeta .c-observaciones, .carpeta-aviso { grid-column: 2 / 5; }
+  .caja-agregar { margin-left: 0; }
+}
 
 .resumen-partidas {
   display: flex; gap: 26px; padding: 14px 20px;
@@ -410,8 +551,13 @@ select { appearance: none; -webkit-appearance: none; cursor: pointer;
   }
   .usuario b { font-size: 11px; }
   .usuario span { font-size: 10px; }
-  .nav-item { padding: 6px 8px; }
-  .nav-item { flex-direction: column; gap: 3px; font-size: 11px; padding: 6px 12px; }
+  /* seis secciones caben en la barra inferior: etiquetas cortas y sin relleno de más */
+  .nav { gap: 0; min-width: 0; overflow-x: auto; }
+  /* si no caben todas, la barra se desplaza de lado en vez de cortar las etiquetas */
+  .nav-item { flex: 1 0 auto; flex-direction: column; gap: 3px; font-size: 10px; padding: 6px 6px; white-space: nowrap; }
+  .usuario { max-width: 44px; }
+  .usuario span { display: none; }
+  .nav-largo { display: none; }
   .main { padding: 24px 18px 96px; }
   .grid-2 { grid-template-columns: 1fr; }
   .stats { grid-template-columns: 1fr 1fr; }
@@ -429,7 +575,6 @@ select { appearance: none; -webkit-appearance: none; cursor: pointer;
   display: flex; flex-direction: column; gap: 22px;
 }
 .tablero-cab { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-.tablero-logo { height: 40px; width: auto; flex: none; }
 .tablero-cab h1 { font-size: 26px; letter-spacing: -.025em; }
 .tablero-pie { font-size: 12px; color: var(--text-3); text-align: center; margin-top: 6px; }
 
@@ -442,7 +587,6 @@ select { appearance: none; -webkit-appearance: none; cursor: pointer;
 .tabla-anidada tr { cursor: default; }
 .tabla-anidada tr:hover { background: none; }
 
-@media (prefers-color-scheme: dark) { .tablero-logo { filter: brightness(0) invert(1); } }
 @media (max-width: 700px) {
   .tablero { padding: 24px 14px 40px; }
   .tablero .stats { grid-template-columns: 1fr 1fr; }
@@ -532,6 +676,11 @@ select { appearance: none; -webkit-appearance: none; cursor: pointer;
 }
 .btn-cerrar:hover { background: var(--separator-2); }
 .modal-cuerpo { padding: 0 22px; overflow: auto; }
+.modal-ancho { width: min(920px, 100%); }
+/* en una ventana se captura, no se navega: las filas no se resaltan y las casillas se ven siempre */
+.modal .tabla tbody tr:hover { background: none; }
+/* encabezado de cada caja en el cotejo de devolución */
+.cotejo-caja { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .modal-pie {
   display: flex; justify-content: flex-end; gap: 8px;
   padding: 16px 22px 20px;
@@ -586,7 +735,6 @@ select { appearance: none; -webkit-appearance: none; cursor: pointer;
 .doc-cab h1 { font-size: 15pt; margin: 3px 0 0; letter-spacing: -.01em; }
 .doc-cab .folio { font-size: 12pt; font-weight: 600; margin-top: 3px; }
 .doc-cab svg { width: 96px; height: 96px; }
-.doc-logo { height: 34px; width: auto; display: block; margin-bottom: 7px; }
 
 .doc-datos {
   display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px 16px; margin-bottom: 14px;
@@ -603,6 +751,7 @@ select { appearance: none; -webkit-appearance: none; cursor: pointer;
 .doc td { padding: 5px 6px; border-bottom: 1px solid #e0e0e0; font-size: 9.5pt; vertical-align: top; }
 .doc tfoot td { border-top: 1.5px solid #000; border-bottom: 0; font-weight: 600; }
 .doc .num { text-align: right; }
+.doc tr.fila-caja td { background: #f2f2f2; font-size: 9pt; padding-top: 6px; }
 
 .doc-obs { font-size: 9.5pt; margin-bottom: 16px; }
 .doc-obs b { display: block; font-size: 8.5pt; text-transform: uppercase; letter-spacing: .04em; color: #666; }

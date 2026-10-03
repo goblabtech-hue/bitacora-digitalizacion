@@ -11,7 +11,8 @@ COPY public ./public
 ENV NODE_ENV=production \
     PORT=8080 \
     BITACORA_DB=/datos/bitacora.db \
-    BITACORA_RESPALDOS=/datos/respaldos
+    BITACORA_RESPALDOS=/datos/respaldos \
+    BITACORA_ARCHIVO=/datos/archivo
 VOLUME /datos
 EXPOSE 8080
 

@@ -4,19 +4,17 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#f5f5f7">
-<title>Bitácora Digitalización</title>
+<title>Bitácora de digitalización</title>
 <link rel="stylesheet" href="styles.css">
-<link rel="icon" href="/logo-marca.png">
 </head>
 <body>
 
 <!-- ───────────────────────────── pantalla de acceso ──────────────────────── -->
 <div class="acceso" id="acceso" hidden>
   <div class="acceso-caja">
-    <img class="acceso-logo" id="acceso-logo" alt="" hidden>
-    <div class="brand-mark grande" id="acceso-mark">P</div>
-    <h1 id="acceso-titulo">Bitácora</h1>
-    <p>Bitácora de digitalización de documentos</p>
+    <div class="brand-mark grande">B</div>
+    <h1>Bitácora de digitalización</h1>
+    <p>Recepción, digitalización y devolución de documentos</p>
     <p class="acceso-error" id="acceso-error" hidden></p>
     <a class="btn-google" id="btn-google" href="/auth/google">
       <svg viewBox="0 0 18 18" aria-hidden="true">
@@ -42,11 +40,10 @@
   <!-- ───────────────────────────── barra lateral ───────────────────────────── -->
   <aside class="sidebar">
     <div class="brand">
-      <img class="brand-logo" id="brand-logo" alt="" hidden>
-      <div class="brand-mark" id="brand-mark">P</div>
-      <div class="brand-text" id="brand-text">
-        <strong id="brand-titulo">Bitácora</strong>
-        <span id="brand-sub">Bitácora de digitalización</span>
+      <div class="brand-mark">B</div>
+      <div class="brand-text">
+        <strong>Bitácora</strong>
+        <span>de digitalización</span>
       </div>
     </div>
 
@@ -59,9 +56,17 @@
         <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3a1 1 0 0 1 1 1v5h5a1 1 0 1 1 0 2h-5v5a1 1 0 1 1-2 0v-5H4a1 1 0 1 1 0-2h5V4a1 1 0 0 1 1-1z"/></svg>
         Recepción
       </button>
+      <button class="nav-item" data-vista="digitalizacion">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 3h10a1 1 0 0 1 1 1v4H4V4a1 1 0 0 1 1-1zM2 9.5A1.5 1.5 0 0 1 3.5 8h13A1.5 1.5 0 0 1 18 9.5V14a1 1 0 0 1-1 1h-2v2H5v-2H3a1 1 0 0 1-1-1V9.5zM7 13v2.4h6V13H7z"/></svg>
+        <span class="nav-largo">Digitalización</span><span class="nav-corto">Mesas</span>
+      </button>
+      <button class="nav-item" data-vista="expedientes">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 2h7l4 4v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zm6 1.5V7h3.5L11 3.5zM7 10h6v1.4H7V10zm0 3h6v1.4H7V13z"/></svg>
+        <span class="nav-largo">Expedientes</span><span class="nav-corto">PDF</span>
+      </button>
       <button class="nav-item" data-vista="entregas">
         <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 5.5A1.5 1.5 0 0 1 4.5 4h4l1.5 2h5.5A1.5 1.5 0 0 1 17 7.5v7A1.5 1.5 0 0 1 15.5 16h-11A1.5 1.5 0 0 1 3 14.5v-9z"/></svg>
-        Entregas
+        Devueltas
       </button>
       <button class="nav-item" data-vista="personal">
         <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 10a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4zm0 1.6c-2.9 0-6 1.5-6 3.4V17h12v-2c0-1.9-3.1-3.4-6-3.4z"/></svg>
@@ -95,10 +100,20 @@
           <h1>Panel</h1>
           <p class="sub" id="fecha-hoy"></p>
         </div>
-        <button class="btn btn-primary" data-ir="recepcion">Nueva recepción</button>
+        <div class="titlebar-acciones">
+          <button class="btn" data-ir="reporte">Reporte</button>
+          <button class="btn btn-primary" data-ir="recepcion">Nueva recepción</button>
+        </div>
       </header>
 
+      <div class="periodo" id="panel-periodo"></div>
+
       <div class="stats" id="stats"></div>
+
+      <div class="card" id="card-solicitudes" hidden>
+        <div class="card-head"><h2>Solicitudes por resolver</h2></div>
+        <div class="card-body no-pad" id="panel-solicitudes"></div>
+      </div>
 
       <div class="grid-2">
         <div class="card">
@@ -118,7 +133,7 @@
 
       <div class="grid-2">
         <div class="card">
-          <div class="card-head"><h2>Producción por operador</h2></div>
+          <div class="card-head"><h2>Producción por responsable de mesa</h2><span class="celda-sec" id="panel-produccion-periodo"></span></div>
           <div class="card-body no-pad" id="panel-operadores"></div>
         </div>
         <div class="card">
@@ -171,10 +186,6 @@
                 <span>Hora</span>
                 <input type="time" name="hora">
               </label>
-              <label class="campo campo-sm">
-                <span>Estado del lote</span>
-                <select name="estado" id="sel-estado"></select>
-              </label>
               <label class="campo campo-md">
                 <span>Dependencia que entrega</span>
                 <input name="dependencia" list="lista-dependencias" placeholder="Ej. Secretaría de Finanzas" required>
@@ -184,12 +195,8 @@
                 <input name="area" list="lista-areas" placeholder="Ej. Archivo de concentración">
               </label>
               <label class="campo campo-sm">
-                <span>Cajas o paquetes</span>
-                <input type="number" name="cajas" min="0" step="1" value="0" placeholder="0">
-              </label>
-              <label class="campo campo-sm">
-                <span>Carpetas</span>
-                <input type="number" name="carpetas" min="0" step="1" value="0" placeholder="0">
+                <span>Sede donde se recibe</span>
+                <select name="sede_id" id="sel-sede"></select>
               </label>
             </div>
           </div>
@@ -238,14 +245,14 @@
 
         <div class="card">
           <div class="card-head">
-            <h2>Documentos recibidos</h2>
-            <button type="button" class="link-btn" id="btn-agregar-partida">Agregar partida</button>
+            <h2>Cajas y carpetas</h2>
+            <button type="button" class="link-btn" id="btn-agregar-caja">Agregar caja</button>
           </div>
           <div class="card-body no-pad">
-            <div id="partidas"></div>
+            <div id="cajas"></div>
             <div class="resumen-partidas">
-              <span>Partidas <b id="res-partidas">0</b></span>
-              <span>Documentos <b id="res-documentos">0</b></span>
+              <span>Cajas <b id="res-cajas">0</b></span>
+              <span>Carpetas <b id="res-carpetas">0</b></span>
               <span>Fojas <b id="res-fojas">0</b></span>
             </div>
           </div>
@@ -263,11 +270,99 @@
       </form>
     </section>
 
-    <!-- ============================== ENTREGAS =========================== -->
+    <!-- ============================ EXPEDIENTES ========================== -->
+    <section class="vista" id="vista-expedientes">
+      <header class="titlebar">
+        <div>
+          <h1>Expedientes digitales</h1>
+          <p class="sub" id="exp-sub">El PDF de cada carpeta digitalizada</p>
+        </div>
+      </header>
+      <div class="filtros">
+        <div class="buscador"><input type="search" id="exp-q" placeholder="Buscar NUC, descripción, folio o dependencia"></div>
+      </div>
+      <div class="card">
+        <div class="card-body no-pad" id="exp-cuerpo"></div>
+      </div>
+      <p class="sub">Cada vez que alguien abre un PDF queda registrado en el historial del lote.</p>
+    </section>
+
+    <!-- ============================== LISTADO ============================ -->
+    <!-- a dónde lleva cada cifra del Panel: el detalle que la explica -->
+    <section class="vista" id="vista-listado">
+      <header class="titlebar">
+        <div>
+          <button class="link-btn" data-ir="panel">← Panel</button>
+          <h1 id="listado-titulo">Listado</h1>
+          <p class="sub" id="listado-sub"></p>
+        </div>
+      </header>
+      <div class="filtros" id="listado-filtros"></div>
+      <div class="card">
+        <div class="card-body no-pad" id="listado-cuerpo"></div>
+      </div>
+    </section>
+
+    <!-- ============================== REPORTE ============================ -->
+    <section class="vista" id="vista-reporte">
+      <header class="titlebar">
+        <div>
+          <h1>Reporte</h1>
+          <p class="sub" id="reporte-sub">Lo que se hizo en cada etapa del proceso</p>
+        </div>
+        <div class="titlebar-acciones">
+          <button class="btn" id="reporte-imprimir">Imprimir</button>
+        </div>
+      </header>
+      <div class="periodo" id="reporte-periodo"></div>
+      <div id="reporte-cuerpo" class="reporte"></div>
+    </section>
+
+    <!-- ============================ DIGITALIZACIÓN ======================= -->
+    <section class="vista" id="vista-digitalizacion">
+      <header class="titlebar">
+        <div>
+          <h1>Digitalización</h1>
+          <p class="sub" id="digi-sub">Asigna las carpetas a una mesa y sigue su tratamiento</p>
+        </div>
+      </header>
+
+      <div class="stats" id="digi-stats"></div>
+
+      <div class="card" id="digi-traslados-card" hidden>
+        <div class="card-head">
+          <h2>Traslados entre sedes</h2>
+          <button class="link-btn" id="digi-enviar">Enviar cajas a otra sede</button>
+        </div>
+        <div class="card-body no-pad" id="digi-traslados"></div>
+      </div>
+
+      <div class="card" id="digi-sin-validar-card" hidden>
+        <div class="card-head"><h2>Lotes sin validar</h2></div>
+        <div class="card-body no-pad" id="digi-sin-validar"></div>
+      </div>
+
+      <div class="card" id="digi-por-asignar-card">
+        <div class="card-head">
+          <h2>Por asignar a mesa</h2>
+          <button class="link-btn" id="digi-todas">Seleccionar todas</button>
+        </div>
+        <div class="card-body no-pad" id="digi-por-asignar"></div>
+        <div class="asignar-barra" id="digi-barra" hidden>
+          <span id="digi-seleccion"></span>
+          <select id="digi-mesa" aria-label="Mesa"></select>
+          <button class="btn btn-primary" id="digi-asignar">Asignar a la mesa</button>
+        </div>
+      </div>
+
+      <div id="digi-mesas" class="mesas"></div>
+    </section>
+
+    <!-- ============================== DEVUELTAS ========================== -->
     <section class="vista" id="vista-entregas">
       <header class="titlebar">
         <div>
-          <h1>Entregas</h1>
+          <h1>Devueltas</h1>
           <p class="sub" id="entregas-sub">Carpetas en resguardo y devoluciones</p>
         </div>
         <button class="btn btn-primary" id="btn-salida">Registrar salida</button>
@@ -278,7 +373,7 @@
       <div class="filtros">
         <div class="segmented" id="f-entregas">
           <button type="button" data-filtro="pendientes" class="is-active">En resguardo</button>
-          <button type="button" data-filtro="entregadas">Entregadas</button>
+          <button type="button" data-filtro="entregadas">Devueltas</button>
           <button type="button" data-filtro="todas">Todas</button>
         </div>
       </div>
@@ -300,6 +395,22 @@
 
       <div class="card">
         <div class="card-body no-pad" id="tabla-personal"></div>
+      </div>
+
+      <div class="card" id="card-sedes" hidden>
+        <div class="card-head">
+          <h2>Sedes</h2>
+          <button class="link-btn" id="btn-alta-sede">Agregar sede</button>
+        </div>
+        <div class="card-body no-pad" id="tabla-sedes"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2>Mesas de digitalización</h2>
+          <button class="link-btn" id="btn-alta-mesa" hidden>Agregar mesa</button>
+        </div>
+        <div class="card-body no-pad" id="tabla-mesas"></div>
       </div>
     </section>
 

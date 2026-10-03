@@ -4,7 +4,7 @@
     {
       "name": "bitacora",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["start"],
+      "runtimeArgs": ["run", "prueba"],
       "port": 4321
     }
   ]

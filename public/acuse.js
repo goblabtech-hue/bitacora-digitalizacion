@@ -4,7 +4,8 @@
 
 /* ─────────────────────────── modal genérico ─────────────────────────── */
 
-function abrirModal({ titulo, cuerpo, botones = [] }) {
+function abrirModal({ titulo, cuerpo, botones = [], ancho = false }) {
+  document.querySelector('.modal').classList.toggle('modal-ancho', ancho);
   document.getElementById('modal-titulo').textContent = titulo;
   document.getElementById('modal-cuerpo').innerHTML = cuerpo;
   const pie = document.getElementById('modal-pie');
@@ -160,6 +161,40 @@ function firmarDevolucion(r, alGuardar) {
   });
 }
 
+/* ───────────────────────── cajas de un lote ─────────────────────────── */
+
+/** Cómo se nombra una carpeta: su NUC y, si la hay, su descripción. */
+function nombreCarpeta(d) {
+  const nuc = d.nuc ? `<b class="nuc">${esc(d.nuc)}</b>` : '';
+  return [nuc, esc(d.descripcion || '')].filter(Boolean).join(' · ') || `Carpeta ${d.id}`;
+}
+
+/** Rango de folios de una carpeta, para comprobar que no falta ninguna hoja. */
+const foliosDe = (d) => (d.folio_inicial !== null && d.folio_inicial !== undefined && d.folio_final !== null
+  ? `fs. ${num(d.folio_inicial)}–${num(d.folio_final)}` : 'sin foliar');
+
+/** Agrupa las carpetas de un lote por caja, con sus totales. */
+function agruparCajas(documentos) {
+  const cajas = new Map();
+  for (const d of documentos) {
+    if (!cajas.has(d.caja)) cajas.set(d.caja, { caja: d.caja, carpetas: [], fojas: 0 });
+    const c = cajas.get(d.caja);
+    c.carpetas.push(d);
+    c.fojas += d.fojas;
+  }
+  return [...cajas.values()];
+}
+
+/** Filas de tabla por caja: un renglón de encabezado con el subtotal y
+ *  después sus carpetas, numeradas dentro de la caja. */
+function filasPorCaja(documentos, columnas, fila) {
+  return agruparCajas(documentos).map((c) => `
+    <tr class="fila-caja"><td colspan="${columnas}">
+      <b>Caja ${c.caja}</b> · ${num(c.carpetas.length)} carpeta${c.carpetas.length === 1 ? '' : 's'}
+      · ${num(c.fojas)} fojas</td></tr>
+    ${c.carpetas.map((d, i) => fila(d, i + 1)).join('')}`).join('');
+}
+
 /* ───────────────────────── documentos imprimibles ───────────────────── */
 
 function imprimir(html) {
@@ -172,15 +207,14 @@ function imprimir(html) {
 
 function acuseHTML(r) {
   const cfg = estado.config;
-  const filas = r.documentos.map((d, i) => `
+  const filas = filasPorCaja(r.documentos, 5, (d, n) => `
     <tr>
-      <td>${i + 1}</td>
-      <td>${esc(d.descripcion)}${d.observaciones ? `<br><small>${esc(d.observaciones)}</small>` : ''}</td>
-      <td>${esc(d.tipo || '—')}</td>
-      <td class="num">${num(d.cantidad)}</td>
+      <td>${n}</td>
+      <td>${nombreCarpeta(d)}${d.observaciones ? `<br><small>${esc(d.observaciones)}</small>` : ''}</td>
+      <td>${foliosDe(d)}</td>
       <td class="num">${num(d.fojas)}</td>
       <td>${esc(d.situacion)}</td>
-    </tr>`).join('');
+    </tr>`);
 
   const firma = (imagen, nombre, cargo, papel) => `
     <div class="doc-firma">
@@ -194,7 +228,6 @@ function acuseHTML(r) {
   <article class="doc">
     <header class="doc-cab">
       <div>
-        ${cfg.logo_marca ? `<img class="doc-logo" src="${esc(cfg.logo_marca)}" alt="${esc(cfg.organizacion)}">` : ''}
         <div class="org">${esc(cfg.organizacion)}</div>
         <h1>Acuse de recepción de documentos</h1>
         <div class="folio">${esc(r.folio)}</div>
@@ -207,19 +240,16 @@ function acuseHTML(r) {
       <div><span>Dependencia</span><b>${esc(r.dependencia)}</b></div>
       <div><span>Área o unidad</span><b>${esc(r.area || '—')}</b></div>
       <div><span>Estado del lote</span><b>${esc(r.estado)}</b></div>
-      <div><span>Partidas</span><b>${num(r.total_partidas)}</b></div>
-      <div><span>Documentos</span><b>${num(r.total_documentos)}</b></div>
+      <div><span>Cajas</span><b>${num(r.cajas)}</b></div>
+      <div><span>Carpetas</span><b>${num(r.carpetas)}</b></div>
       <div><span>Fojas</span><b>${num(r.total_fojas)}</b></div>
-      <div><span>Cajas y carpetas</span>
-        <b>${num(r.cajas)} caja${r.cajas === 1 ? '' : 's'} · ${num(r.carpetas)} carpeta${r.carpetas === 1 ? '' : 's'}</b></div>
     </div>
 
     <table>
-      <thead><tr><th>#</th><th>Descripción</th><th>Tipo</th>
-        <th class="num">Cant.</th><th class="num">Fojas</th><th>Situación</th></tr></thead>
+      <thead><tr><th>#</th><th>Carpeta (NUC)</th><th>Folios</th><th class="num">Fojas</th><th>Situación</th></tr></thead>
       <tbody>${filas}</tbody>
-      <tfoot><tr><td colspan="3">Totales</td>
-        <td class="num">${num(r.total_documentos)}</td>
+      <tfoot><tr><td colspan="3">Totales · ${num(r.cajas)} caja${r.cajas === 1 ? '' : 's'} ·
+          ${num(r.carpetas)} carpeta${r.carpetas === 1 ? '' : 's'}</td>
         <td class="num">${num(r.total_fojas)}</td><td></td></tr></tfoot>
     </table>
 
@@ -249,9 +279,10 @@ function acuseHTML(r) {
 
 function etiquetasHTML(r) {
   const cfg = estado.config;
-  const total = Math.max(1, r.cajas || 1);
+  const cajas = agruparCajas(r.documentos);
+  const total = cajas.length;
   const qr = QR.svg(r.folio, { modulo: 3, margen: 2 });
-  const etiquetas = Array.from({ length: total }, (_, i) => `
+  const etiquetas = cajas.map((c, i) => `
     <div class="etiqueta">
       ${qr}
       <div class="etiqueta-datos">
@@ -260,7 +291,7 @@ function etiquetasHTML(r) {
         <div class="caja">Caja ${i + 1} de ${total}</div>
         <div class="dep">${esc(r.dependencia)}</div>
         <div class="meta">${esc(r.area || '')}</div>
-        <div class="meta">${fechaCorta(r.fecha)} · ${num(r.total_documentos)} docs · ${num(r.total_fojas)} fojas</div>
+        <div class="meta">${fechaCorta(r.fecha)} · ${num(c.carpetas.length)} carpeta${c.carpetas.length === 1 ? '' : 's'} · ${num(c.fojas)} fojas</div>
       </div>
     </div>`).join('');
   return `<div class="etiquetas">${etiquetas}</div>`;
@@ -287,16 +318,24 @@ function acuseDevolucionHTML(r) {
   const totalDevuelto = r.cotejo_en ? devueltos.documentos : r.total_documentos;
   const fojasDevueltas = r.cotejo_en ? devueltos.fojas : r.total_fojas;
 
-  const filas = r.documentos.map((d, i) => {
+  const filas = filasPorCaja(r.documentos, 7, (d, n) => {
     const devuelto = d.cantidad_devuelta ?? null;
     const dif = devuelto === null ? 0 : devuelto - d.cantidad;
+    const difFojas = devuelto === null ? 0 : (d.fojas_devueltas ?? 0) - d.fojas;
+    const sale = d.situacion_devuelta || '';
+    // cómo sale cada carpeta comparado con cómo se recibió
+    const condicion = devuelto === null ? `${esc(d.situacion)} · sin cotejar`
+      : [dif ? `<b>${dif > 0 ? '+' : ''}${num(dif)} carpeta</b>` : '',
+         difFojas ? `<b>${difFojas > 0 ? '+' : ''}${num(difFojas)} fojas</b>` : '',
+         sale && sale !== d.situacion ? `<b>${esc(d.situacion)} → ${esc(sale)}</b>` : ''
+        ].filter(Boolean).join(' · ') || `Sin cambios · ${esc(d.situacion)}`;
     return `
-    <tr><td>${i + 1}</td><td>${esc(d.descripcion)}</td>
+    <tr><td>${n}</td><td>${nombreCarpeta(d)}<br><small>${foliosDe(d)}</small></td>
       <td class="num">${num(d.cantidad)}</td><td class="num">${num(d.fojas)}</td>
       <td class="num">${devuelto === null ? '—' : num(devuelto)}</td>
       <td class="num">${devuelto === null ? '—' : num(d.fojas_devueltas ?? 0)}</td>
-      <td>${dif ? `<b>${dif > 0 ? '+' : ''}${num(dif)}</b>` : esc(d.situacion)}</td></tr>`;
-  }).join('');
+      <td>${condicion}</td></tr>`;
+  });
 
   const incidencias = r.incidencias.length ? `
     <table style="margin-top:4px">
@@ -318,7 +357,6 @@ function acuseDevolucionHTML(r) {
   <article class="doc">
     <header class="doc-cab">
       <div>
-        ${cfg.logo_marca ? `<img class="doc-logo" src="${esc(cfg.logo_marca)}" alt="${esc(cfg.organizacion)}">` : ''}
         <div class="org">${esc(cfg.organizacion)}</div>
         <h1>Acuse de devolución y aceptación</h1>
         <div class="folio">${esc(r.folio)}</div>
@@ -344,10 +382,10 @@ function acuseDevolucionHTML(r) {
 
     <table>
       <thead>
-        <tr><th rowspan="2">#</th><th rowspan="2">Descripción</th>
+        <tr><th rowspan="2">#</th><th rowspan="2">Carpeta</th>
           <th class="num" colspan="2">Recibido</th>
           <th class="num" colspan="2">Devuelto</th>
-          <th rowspan="2">Situación o diferencia</th></tr>
+          <th rowspan="2">Condición al devolver</th></tr>
         <tr><th class="num">Cant.</th><th class="num">Fojas</th>
             <th class="num">Cant.</th><th class="num">Fojas</th></tr>
       </thead>
@@ -360,12 +398,17 @@ function acuseDevolucionHTML(r) {
         <td></td></tr></tfoot>
     </table>
 
-    ${r.cotejo_en ? `<p class="doc-obs"><b>Cotejo de la entrega</b>
-      Verificado por ${esc(r.cotejo_por || '—')} el
+    ${r.cotejo_en ? `<p class="doc-obs"><b>Cotejo de la devolución</b>
+      Verificado caja por caja por ${esc(r.cotejo_por || '—')} el
       ${new Date(r.cotejo_en).toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}:
-      ${r.cotejo.documentos === 0 && r.cotejo.fojas === 0
-        ? 'lo devuelto coincide con lo recibido.'
-        : `diferencia de ${num(r.cotejo.documentos)} documentos y ${num(r.cotejo.fojas)} fojas.`}
+      ${r.cotejo.documentos === 0 && r.cotejo.fojas === 0 && !r.cotejo.cambios
+        ? `las ${num(r.cajas)} cajas se devuelven con las mismas carpetas, las mismas fojas y en la misma
+           situación en que se recibieron.`
+        : [r.cotejo.documentos || r.cotejo.fojas
+            ? `diferencia de ${num(r.cotejo.documentos)} carpetas y ${num(r.cotejo.fojas)} fojas` : '',
+           r.cotejo.cambios === 1 ? '1 carpeta cambió de situación'
+            : r.cotejo.cambios ? `${num(r.cotejo.cambios)} carpetas cambiaron de situación` : ''
+          ].filter(Boolean).join('; ') + '.'}
       ${r.cotejo_notas ? esc(r.cotejo_notas) : ''}</p>` : ''}
 
     <p class="doc-obs"><b>Incidencias del servicio</b></p>
