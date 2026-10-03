@@ -72,7 +72,7 @@ CREATE TABLE IF NOT EXISTS config (
 );`);
 
 export const CONFIG_POR_DEFECTO = {
-  organizacion: 'Centro de Tecnologías del Sureste',
+  organizacion: 'Bitácora de digitalización',
   folio_prefijo: 'BIT',
   leyenda_acuse: 'Recibí los documentos descritos en este acuse, en la cantidad y situación asentadas.'
 };
